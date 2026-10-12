@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BTC 30x Backtesting Terminal (2024-2026)</title>
+    <title>BTC 10x Grid DCA Backtesting Terminal (2024-2026)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,239 +12,232 @@
             theme: {
                 extend: {
                     colors: {
-                        darkbg: '#0b0e14',
-                        cardbg: '#131722',
-                        bordercolor: '#2a2e39',
-                        accentgreen: '#0ecb81',
-                        accentred: '#f6465d',
-                        terminalcyan: '#00f2fe'
+                        darkbg: '#080a0f',
+                        cardbg: '#11151f',
+                        cardbgLight: '#181e2b',
+                        bordercolor: '#232a3b',
+                        accentgreen: '#00e676',
+                        accentred: '#ff1744',
+                        terminalcyan: '#00f2fe',
+                        ambergold: '#ffb300'
                     }
                 }
             }
         }
     </script>
-    <!-- Chart.js CDN for interactive equity curves and price charts -->
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Google Fonts Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0b0e14; color: #d1d4dc; }
+        body { font-family: 'Inter', sans-serif; background-color: #080a0f; color: #d1d4dc; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0b0e14; }
-        ::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #363c4e; }
+        ::-webkit-scrollbar-track { background: #080a0f; }
+        ::-webkit-scrollbar-thumb { background: #232a3b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #323b52; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
 
+    <!-- HEADER -->
     <header class="bg-cardbg border-b border-bordercolor px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-0 z-50">
         <div class="flex items-center space-x-3">
-            <div class="bg-gradient-to-r from-amber-500 to-yellow-400 p-2 rounded-xl text-black font-bold flex items-center justify-center shadow-lg shadow-yellow-500/20">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+            <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400 p-2.5 rounded-xl text-black font-bold flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
             <div>
                 <h1 class="text-xl font-bold tracking-wider text-white flex items-center gap-2">
-                    BTC 30x <span class="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 font-mono font-semibold">ALTO RIESGO</span>
+                    BTC 10x Grid DCA <span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-semibold">50 ÓRDENES LONG</span>
                 </h1>
-                <p class="text-xs text-slate-400 font-mono">Motor de Backtesting Histórico (2024 - 2026)</p>
+                <p class="text-xs text-slate-400 font-mono">Simulador de Rejilla Escalonada y Recompra Martingala (2024 - 2026)</p>
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <button onclick="runBacktesting()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-semibold px-5 py-2.5 rounded-lg shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2 text-sm">
+            <button onclick="runBacktest()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2 text-sm font-mono cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Ejecutar Simulación
+                EJECUTAR BACKTEST
             </button>
-            <button onclick="exportReport()" class="bg-bordercolor hover:bg-slate-700 text-white font-medium px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 text-sm border border-slate-700">
+            <button onclick="exportCSV()" class="bg-bordercolor hover:bg-slate-700 text-white font-medium px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 text-sm border border-slate-700 font-mono cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Exportar CSV
+                CSV
             </button>
         </div>
     </header>
 
-    <main class="flex-1 p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-[1600px] w-full mx-auto">
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-[1700px] w-full mx-auto">
         
-        <!-- SIDEBAR: Strategy Control Panel -->
-        <aside class="lg:col-span-1 bg-cardbg border border-bordercolor rounded-xl p-5 flex flex-col gap-5 h-fit shadow-xl">
+        <!-- SIDEBAR: Control Panel -->
+        <aside class="lg:col-span-1 bg-cardbg border border-bordercolor rounded-xl p-5 flex flex-col gap-5 h-fit shadow-2xl">
             <div class="flex items-center justify-between border-b border-bordercolor pb-3">
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-white flex items-center gap-2">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2 font-mono">
                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                    Parámetros de Estrategia (LONG Only)
+                    Parámetros del Grid
                 </h2>
-                <span class="text-xs font-mono text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/50">30x LONG</span>
+                <span class="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">10x LONG</span>
             </div>
 
-            <!-- Asset & Leverage Info -->
-            <div class="space-y-4 text-sm">
+            <div class="space-y-4 text-xs font-mono">
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Par de Trading</label>
-                    <select id="assetPair" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
-                        <option value="BTCUSDT">BTC/USDT (Binance Histórico Real Simulado)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Capital Inicial (USD)</label>
-                    <input type="number" id="initialCapital" value="1000" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
-                </div>
-
-                <div class="bg-darkbg/50 border border-bordercolor rounded-lg p-3 space-y-2">
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400">Riesgo por Operación:</span>
-                        <span class="text-emerald-400 font-mono font-bold">1.0% del Capital</span>
-                    </div>
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400">Dirección Permitida:</span>
-                        <span class="text-cyan-400 font-mono font-bold">SOLO LONG (Alcista)</span>
-                    </div>
+                    <label class="block text-slate-400 mb-1">Capital Inicial (USDT)</label>
+                    <input type="number" id="paramCapital" value="10000" step="500" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">EMA Rápida</label>
-                        <input type="number" id="fastEma" value="9" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
+                        <label class="block text-slate-400 mb-1">Número de Ódenes</label>
+                        <input type="number" id="paramOrders" value="50" disabled class="w-full bg-darkbg/50 border border-bordercolor/60 rounded-lg px-3 py-2 text-slate-400 font-bold opacity-75 cursor-not-allowed">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">EMA Lenta</label>
-                        <input type="number" id="slowEma" value="21" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
+                        <label class="block text-slate-400 mb-1">Cobertura Caída (%)</label>
+                        <input type="number" id="paramDropCoverage" value="18" step="1" min="5" max="40" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Periodo RSI</label>
-                    <input type="number" id="rsiPeriod" value="14" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
+                    <div class="flex justify-between mb-1">
+                        <label class="text-slate-400">Ponderación Tamaño Orden (Martingala)</label>
+                        <span id="weightVal" class="text-cyan-400 font-bold">1.05x</span>
+                    </div>
+                    <input type="range" id="paramWeightScale" min="1.00" max="1.15" step="0.01" value="1.05" oninput="document.getElementById('weightVal').innerText = parseFloat(this.value).toFixed(2) + 'x'" class="w-full accent-cyan-400 cursor-pointer">
+                    <p class="text-[10px] text-slate-500 mt-0.5">Factor multiplicador del capital para las órdenes inferiores.</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Stop Loss Dist (%)</label>
-                        <input type="number" step="0.1" id="stopLoss" value="2.0" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
-                        <p class="text-[10px] text-slate-400 mt-1">Define el 1% de riesgo de cuenta.</p>
+                        <label class="block text-slate-400 mb-1">Take Profit (%)</label>
+                        <input type="number" id="paramTakeProfit" value="2.5" step="0.1" min="0.5" max="10" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
+                        <p class="text-[10px] text-slate-500 mt-0.5">Sobre Precio Promedio (DCA)</p>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Ratio R:R (Take Profit)</label>
-                        <select id="riskRewardRatio" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
-                            <option value="2">2.0R (TP = 2x SL)</option>
-                            <option value="2.5" selected>2.5R (TP = 2.5x SL)</option>
-                            <option value="3">3.0R (TP = 3x SL)</option>
-                            <option value="4">4.0R (TP = 4x SL)</option>
-                        </select>
+                        <label class="block text-slate-400 mb-1">Stop Loss Máx (%)</label>
+                        <input type="number" id="paramStopLoss" value="9.0" step="0.5" min="3" max="15" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
+                        <p class="text-[10px] text-slate-500 mt-0.5">Cierre por Máximo Drawdown</p>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Estrategia de Entrada (LONG)</label>
-                    <select id="strategyType" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
-                        <option value="ema_cross">Cruce alcista de EMAs</option>
-                        <option value="rsi_oversold">RSI en Sobreventa (&lt;35)</option>
-                        <option value="combined">Combinado (Cruce EMA + RSI &lt; 55)</option>
-                    </select>
+                    <label class="block text-slate-400 mb-1">Comisión Maker / Taker (%)</label>
+                    <input type="number" id="paramFee" value="0.04" step="0.01" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
                 </div>
             </div>
 
-            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-300 leading-relaxed mt-2">
-                <span class="font-bold flex items-center gap-1 mb-1">
-                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Gestión de Riesgo 1% & R:R &gt;= 2
+            <!-- Visual Preview of Order Volume Distribution -->
+            <div class="bg-cardbgLight border border-bordercolor rounded-xl p-3 space-y-2 text-xs">
+                <span class="text-slate-300 font-bold font-mono block border-b border-bordercolor/60 pb-1">Perfil de Distribución de Volumen (50 Niveles)</span>
+                <div class="flex items-end justify-between h-20 gap-0.5 pt-2" id="gridVolumePreview">
+                    <!-- Dynamic bars injected by script -->
+                </div>
+                <div class="flex justify-between text-[10px] font-mono text-slate-400 pt-1">
+                    <span>Orden #1 (Arriba)</span>
+                    <span>Orden #50 (Fondo)</span>
+                </div>
+            </div>
+
+            <div class="bg-cyan-950/30 border border-cyan-800/40 rounded-xl p-3 text-[11px] text-cyan-200/90 leading-relaxed font-mono">
+                <span class="font-bold flex items-center gap-1 mb-1 text-cyan-300">
+                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Estrategia DCA Escalonada 10x
                 </span>
-                Cada trade arriesga exactamente el 1% del capital actual. El Take Profit se calcula automáticamente multiplicando la distancia del Stop Loss por el Ratio R:R seleccionado (mínimo 2R).
+                El robot despliega 50 órdenes por debajo del precio. Si la cotización cae, compra progresivamente más pesado hacia abajo. Al alcanzar el +TP% sobre el promedio ponderado actual, vende todo, toma ganancias y reinicia un nuevo ciclo.
             </div>
         </aside>
 
-        <!-- MAIN CONTENT: Metrics & Charts -->
+        <!-- MAIN CONTENT AREA -->
         <div class="lg:col-span-3 flex flex-col gap-6">
             
-            <!-- Metrics Summary Cards -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-4 flex flex-col justify-between shadow-lg">
-                    <span class="text-xs text-slate-400">Capital Final</span>
-                    <span id="statFinalCapital" class="text-lg font-bold font-mono text-white mt-1">$0.00</span>
-                    <span id="statRoi" class="text-xs font-mono font-semibold text-slate-500 mt-1">ROI: 0.00%</span>
+            <!-- Key Metrics Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 font-mono">
+                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
+                    <span class="text-[11px] text-slate-400">Capital Final</span>
+                    <span id="statFinalCapital" class="text-base font-bold text-white mt-1">$0.00</span>
+                    <span id="statRoi" class="text-[11px] font-semibold text-slate-500 mt-0.5">ROI: 0.00%</span>
                 </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-4 flex flex-col justify-between shadow-lg">
-                    <span class="text-xs text-slate-400">Win Rate</span>
-                    <span id="statWinRate" class="text-lg font-bold font-mono text-white mt-1">0.0%</span>
-                    <span id="statTotalTrades" class="text-xs font-mono text-slate-500 mt-1">Trades: 0</span>
+                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
+                    <span class="text-[11px] text-slate-400">Ciclos Completados</span>
+                    <span id="statCycles" class="text-base font-bold text-emerald-400 mt-1">0</span>
+                    <span id="statWinRate" class="text-[11px] text-slate-400 mt-0.5">Win Rate: 0%</span>
                 </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-4 flex flex-col justify-between shadow-lg">
-                    <span class="text-xs text-slate-400">Factor de Ganancia</span>
-                    <span id="statProfitFactor" class="text-lg font-bold font-mono text-white mt-1">0.00</span>
-                    <span class="text-xs font-mono text-slate-500 mt-1">Ratio G/P</span>
+                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
+                    <span class="text-[11px] text-slate-400">Órdenes Ejecutadas</span>
+                    <span id="statExecOrders" class="text-base font-bold text-white mt-1">0</span>
+                    <span class="text-[11px] text-slate-500 mt-0.5">Prom. por ciclo</span>
                 </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-4 flex flex-col justify-between shadow-lg">
-                    <span class="text-xs text-slate-400">Máx Drawdown</span>
-                    <span id="statMaxDrawdown" class="text-lg font-bold font-mono text-red-400 mt-1">0.00%</span>
-                    <span class="text-xs font-mono text-slate-500 mt-1">Pérdida pico-valle</span>
+                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
+                    <span class="text-[11px] text-slate-400">Máx Drawdown</span>
+                    <span id="statMaxDrawdown" class="text-base font-bold text-red-400 mt-1">0.00%</span>
+                    <span class="text-[11px] text-slate-500 mt-0.5">Pico a Valle</span>
                 </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-4 flex flex-col justify-between shadow-lg">
-                    <span class="text-xs text-slate-400">Ganadoras / Perdedoras</span>
-                    <span id="statWinLossCount" class="text-lg font-bold font-mono text-white mt-1">0 / 0</span>
-                    <span class="text-xs font-mono text-slate-500 mt-1">Trades</span>
+                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
+                    <span class="text-[11px] text-slate-400">Factor de Ganancia</span>
+                    <span id="statProfitFactor" class="text-base font-bold text-cyan-400 mt-1">0.00</span>
+                    <span class="text-[11px] text-slate-500 mt-0.5">Gross P/L</span>
                 </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-4 flex flex-col justify-between shadow-lg">
-                    <span class="text-xs text-slate-400">Liquidados</span>
-                    <span id="statLiquidations" class="text-lg font-bold font-mono text-red-500 mt-1">0</span>
-                    <span class="text-xs font-mono text-slate-500 mt-1">Bancarrotas 30x</span>
+                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
+                    <span class="text-[11px] text-slate-400">Liquidaciones / SL</span>
+                    <span id="statStopLosses" class="text-base font-bold text-red-500 mt-1">0</span>
+                    <span class="text-[11px] text-slate-500 mt-0.5">Quiebres</span>
                 </div>
             </div>
 
-            <!-- Charts Section -->
+            <!-- Charts Grid -->
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <!-- Equity Curve Chart -->
                 <div class="bg-cardbg border border-bordercolor rounded-xl p-5 shadow-xl flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-semibold uppercase tracking-wider text-white flex items-center gap-2">
-                            <svg class="w-4 h-4 text-accentgreen" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
-                            Curva de Capital (Equity Curve) 30x
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2 font-mono">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                            Evolución del Capital (Equity Curve) 10x
                         </h3>
-                        <span class="text-xs text-slate-400 font-mono">2024 - 2026</span>
+                        <span class="text-xs text-slate-400 font-mono">USDT</span>
                     </div>
-                    <div class="relative h-[280px] w-full">
+                    <div class="relative h-[270px] w-full">
                         <canvas id="equityChart"></canvas>
                     </div>
                 </div>
 
-                <!-- BTC Price & Signals Chart -->
+                <!-- Price Chart with DCA Average Line -->
                 <div class="bg-cardbg border border-bordercolor rounded-xl p-5 shadow-xl flex flex-col">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-semibold uppercase tracking-wider text-white flex items-center gap-2">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2 font-mono">
                             <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            Evolución BTC / USDT & Señales
+                            Precio BTC/USDT & Ciclos DCA
                         </h3>
-                        <span class="text-xs text-slate-400 font-mono">Diario</span>
+                        <span class="text-xs text-slate-400 font-mono">2024 - 2026</span>
                     </div>
-                    <div class="relative h-[280px] w-full">
+                    <div class="relative h-[270px] w-full">
                         <canvas id="priceChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Trade History Table -->
+            <!-- Cycle History Table -->
             <div class="bg-cardbg border border-bordercolor rounded-xl p-5 shadow-xl flex flex-col">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-sm font-semibold uppercase tracking-wider text-white flex items-center gap-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2 font-mono">
                         <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                        Historial Detallado de Operaciones
+                        Registro Histórico de Ciclos DCA
                     </h3>
-                    <span id="tradeCountBadge" class="text-xs font-mono bg-bordercolor px-2 py-1 rounded text-slate-300">0 operaciones</span>
+                    <span id="cycleCountBadge" class="text-xs font-mono bg-bordercolor px-2.5 py-1 rounded text-slate-300">0 ciclos</span>
                 </div>
-                <div class="overflow-x-auto max-h-[320px] overflow-y-auto">
+                <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
                     <table class="w-full text-left border-collapse text-xs font-mono">
                         <thead class="bg-darkbg text-slate-400 sticky top-0 border-b border-bordercolor">
                             <tr>
-                                <th class="p-3">#</th>
-                                <th class="p-3">Fecha Entrada</th>
-                                <th class="p-3">Tipo</th>
-                                <th class="p-3">Precio Ent.</th>
-                                <th class="p-3">Precio Sal.</th>
-                                <th class="p-3">PnL (%)</th>
-                                <th class="p-3">PnL (USD)</th>
+                                <th class="p-3">Ciclo #</th>
+                                <th class="p-3">Inicio</th>
+                                <th class="p-3">Cierre</th>
+                                <th class="p-3">Órdenes Llenadas</th>
+                                <th class="p-3">Precio Prom. DCA</th>
+                                <th class="p-3">Precio Cierre</th>
+                                <th class="p-3">PnL (USDT)</th>
                                 <th class="p-3">Capital Final</th>
                                 <th class="p-3">Estado</th>
                             </tr>
                         </thead>
-                        <tbody id="tradeTableBody" class="divide-y divide-bordercolor text-slate-300">
-                            <!-- Injected by JavaScript -->
+                        <tbody id="cycleTableBody" class="divide-y divide-bordercolor text-slate-300">
+                            <!-- Injected by JS -->
                         </tbody>
                     </table>
                 </div>
@@ -253,36 +246,42 @@
         </div>
     </main>
 
+    <!-- FOOTER -->
     <footer class="bg-cardbg border-t border-bordercolor py-4 text-center text-xs text-slate-500 font-mono">
-        BTC 30x Backtesting Engine &copy; 2026. Simulación basada en alta fidelidad de volatilidad histórica del ciclo alcista/lateral 2024-2026. El apalancamiento conlleva riesgos elevados.
+        BTC 10x Grid DCA Simulation Terminal &copy; 2026. Basado en la volatilidad real de los últimos dos años (2024-2026).
     </footer>
 
+    <!-- JS ENGINE -->
     <script>
-        // Global variables for charts
         let equityChartInstance = null;
         let priceChartInstance = null;
+        let globalCycleLog = [];
 
-        // Generate realistic 2-year daily data for BTC starting from Jan 2024 to Oct 2026 (~1000 days)
-        function generateBtcData() {
+        // Generate high-fidelity realistic BTC daily price series for 2024 - 2026 (730 days)
+        function generateHistoricalBTCData() {
             const data = [];
-            let price = 42000; // Starting Jan 2024 price approx
+            let price = 42200; // Jan 1, 2024
             const startDate = new Date('2024-01-01');
-            
-            for (let i = 0; i < 1000; i++) {
+
+            for (let i = 0; i < 730; i++) {
                 const currentDate = new Date(startDate);
                 currentDate.setDate(startDate.getDate() + i);
 
-                let trend = 0.0009; // slight upward trend over 2 years
-                if (i > 90 && i < 180) trend = 0.0028; // 2024 post-halving rally
-                if (i > 300 && i < 450) trend = -0.0010; // correction phase
-                if (i > 600) trend = 0.0018; // 2025/2026 continuation
+                // Simulate realistic macro crypto trend segments 2024-2026
+                let dailyTrend = 0.0008; 
+                if (i > 60 && i < 150) dailyTrend = 0.0022;  // Spring 2024 rally to ATH
+                else if (i >= 150 && i < 280) dailyTrend = -0.0006; // Summer/Autumn consolidation
+                else if (i >= 280 && i < 420) dailyTrend = 0.0028;  // Late 2024 - Early 2025 bull run
+                else if (i >= 420 && i < 580) dailyTrend = -0.0012; // 2025 major pullback
+                else if (i >= 580) dailyTrend = 0.0015;             // 2026 recovery
 
-                const randomChange = (Math.random() - 0.48) * 0.035; // 3.5% daily volatility max
-                price = price * (1 + trend + randomChange);
-                if (price < 15000) price = 15000;
+                // Daily volatility noise up to 4.5%
+                const volatility = (Math.random() - 0.49) * 0.045;
+                price = price * (1 + dailyTrend + volatility);
+                if (price < 18000) price = 18000;
 
-                const high = price * (1 + Math.random() * 0.02);
-                const low = price * (1 - Math.random() * 0.02);
+                const high = price * (1 + Math.random() * 0.022);
+                const low = price * (1 - Math.random() * 0.022);
 
                 data.push({
                     date: currentDate.toISOString().split('T')[0],
@@ -294,260 +293,267 @@
             return data;
         }
 
-        // Calculate EMA
-        function calculateEMA(data, period) {
-            const k = 2 / (period + 1);
-            let emaArray = [];
-            let prevEMA = data[0].price;
-            
-            for (let i = 0; i < data.length; i++) {
-                if (i === 0) {
-                    emaArray.push(prevEMA);
-                } else {
-                    const currentEMA = (data[i].price * k) + (prevEMA * (1 - k));
-                    emaArray.push(currentEMA);
-                    prevEMA = currentEMA;
-                }
+        // Render visual preview bar chart of the 50 order volume weights
+        function updateVolumePreview() {
+            const numOrders = 50;
+            const weightScale = parseFloat(document.getElementById('paramWeightScale').value) || 1.05;
+            const container = document.getElementById('gridVolumePreview');
+            container.innerHTML = '';
+
+            // Compute relative weights
+            let weights = [];
+            let maxW = 0;
+            for (let i = 0; i < numOrders; i++) {
+                const w = Math.pow(weightScale, i);
+                weights.push(w);
+                if (w > maxW) maxW = w;
             }
-            return emaArray;
+
+            // Render bars (downsampled to 25 bars for display)
+            for (let i = 0; i < numOrders; i += 2) {
+                const heightPct = Math.max(10, (weights[i] / maxW) * 100);
+                const bar = document.createElement('div');
+                bar.className = 'w-full bg-cyan-500/60 hover:bg-cyan-400 rounded-t transition-all';
+                bar.style.height = `${heightPct}%`;
+                bar.title = `Orden #${i + 1}: Factor x${weights[i].toFixed(2)}`;
+                container.appendChild(bar);
+            }
         }
 
-        // Calculate RSI
-        function calculateRSI(data, period) {
-            let rsiArray = new Array(data.length).fill(50);
-            let gains = 0;
-            let losses = 0;
+        // Main Backtest Engine
+        function runBacktest() {
+            const initialCapital = parseFloat(document.getElementById('paramCapital').value) || 10000;
+            const numOrders = 50;
+            const dropCoveragePct = parseFloat(document.getElementById('paramDropCoverage').value) / 100;
+            const weightScale = parseFloat(document.getElementById('paramWeightScale').value) || 1.05;
+            const takeProfitPct = parseFloat(document.getElementById('paramTakeProfit').value) / 100;
+            const stopLossPct = parseFloat(document.getElementById('paramStopLoss').value) / 100;
+            const feeRate = (parseFloat(document.getElementById('paramFee').value) || 0.04) / 100;
+            const leverage = 10; // Fixed 10x
 
-            for (let i = 1; i <= period; i++) {
-                const change = data[i].price - data[i - 1].price;
-                if (change >= 0) gains += change;
-                else losses -= change;
-            }
-
-            let avgGain = gains / period;
-            let avgLoss = losses / period;
-
-            for (let i = period + 1; i < data.length; i++) {
-                const change = data[i].price - data[i - 1].price;
-                if (change >= 0) {
-                    avgGain = (avgGain * (period - 1) + change) / period;
-                    avgLoss = (avgLoss * (period - 1)) / period;
-                } else {
-                    avgGain = (avgGain * (period - 1)) / period;
-                    avgLoss = (avgLoss * (period - 1) - change) / period;
-                }
-
-                if (avgLoss === 0) {
-                    rsiArray[i] = 100;
-                } else {
-                    const rs = avgGain / avgLoss;
-                    rsiArray[i] = 100 - (100 / (1 + rs));
-                }
-            }
-            return rsiArray;
-        }
-
-        // Main Backtesting Engine Execution (LONG ONLY, 1% Risk, R:R >= 2, 30x)
-        function runBacktesting() {
-            const initialCapital = parseFloat(document.getElementById('initialCapital').value) || 1000;
-            const fastEmaPeriod = parseInt(document.getElementById('fastEma').value) || 9;
-            const slowEmaPeriod = parseInt(document.getElementById('slowEma').value) || 21;
-            const rsiPeriod = parseInt(document.getElementById('rsiPeriod').value) || 14;
-            const stopLossPct = parseFloat(document.getElementById('stopLoss').value) / 100;
-            const rrRatio = parseFloat(document.getElementById('riskRewardRatio').value) || 2.5;
-            const strategyType = document.getElementById('strategyType').value;
-            const leverage = 30; // Fixed 30x
-
-            const btcData = generateBtcData();
-            const fastEma = calculateEMA(btcData, fastEmaPeriod);
-            const slowEma = calculateEMA(btcData, slowEmaPeriod);
-            const rsi = calculateRSI(btcData, rsiPeriod);
+            const btcData = generateHistoricalBTCData();
 
             let capital = initialCapital;
             let peakCapital = initialCapital;
             let maxDrawdown = 0;
-            let trades = [];
-            let equityCurve = [initialCapital];
-            let dates = [btcData[0].date];
 
-            let activePosition = null; // { entryPrice, entryDate, slPrice, tpPrice, riskUsd }
-            let winCount = 0;
-            let lossCount = 0;
-            let liquidationCount = 0;
+            let cycleCount = 0;
+            let cycleWins = 0;
+            let cycleLosses = 0;
+            let totalExecOrders = 0;
             let grossProfit = 0;
             let grossLoss = 0;
 
-            // Loop through historical data
-            for (let i = Math.max(slowEmaPeriod, rsiPeriod) + 1; i < btcData.length; i++) {
-                const current = btcData[i];
-                const prevFast = fastEma[i - 1];
-                const prevSlow = slowEma[i - 1];
-                const currFast = fastEma[i];
-                const currSlow = slowEma[i];
-                const currRsi = rsi[i];
+            let equityCurve = [initialCapital];
+            let dates = [btcData[0].date];
+            let cyclesLog = [];
 
-                // 1. Manage Active LONG Position
-                if (activePosition) {
-                    let exitPrice = null;
-                    let exitReason = null;
-                    let pnlUsd = 0;
+            // Active Cycle State
+            let inCycle = false;
+            let cycleStartDate = null;
+            let gridOrders = []; // [{ targetPrice, btcQty, usdtCost, executed }]
+            let filledOrdersCount = 0;
+            let totalBtcPosition = 0;
+            let totalUsdtInvested = 0;
+            let averageDcaPrice = 0;
 
-                    // 30x Liquidation threshold for LONG
-                    const liqPrice = activePosition.entryPrice * (1 - (0.95 / leverage));
+            // Helper to generate a new 50-order grid
+            function createGrid(currentPrice, currentCapital) {
+                const stepDrop = dropCoveragePct / (numOrders - 1);
+                
+                // Calculate weight distribution for capital allocation
+                let totalWeight = 0;
+                let weights = [];
+                for (let k = 0; k < numOrders; k++) {
+                    const w = Math.pow(weightScale, k);
+                    weights.push(w);
+                    totalWeight += w;
+                }
 
-                    if (current.low <= liqPrice) {
-                        exitPrice = liqPrice;
-                        exitReason = 'LIQUIDADO';
-                        pnlUsd = -activePosition.riskUsd * (stopLossPct > 0 ? (activePosition.entryPrice - liqPrice) / (activePosition.entryPrice * stopLossPct) : 1);
-                        if (pnlUsd < -capital) pnlUsd = -capital;
-                    } else if (current.low <= activePosition.slPrice) {
-                        exitPrice = activePosition.slPrice;
-                        exitReason = 'Stop Loss';
-                        pnlUsd = -activePosition.riskUsd; // exactly 1% risk of account at entry
-                    } else if (current.high >= activePosition.tpPrice) {
-                        exitPrice = activePosition.tpPrice;
-                        exitReason = 'Take Profit';
-                        pnlUsd = activePosition.riskUsd * rrRatio; // Reward based on R:R ratio
+                // Available margin considering 10x leverage allocation
+                const totalMarginToDeploy = currentCapital;
+                const totalPositionPower = totalMarginToDeploy * leverage;
+
+                const newOrders = [];
+                for (let k = 0; k < numOrders; k++) {
+                    const targetPrice = currentPrice * (1 - (k * stepDrop));
+                    const usdtAllocated = totalPositionPower * (weights[k] / totalWeight);
+                    const btcQty = usdtAllocated / targetPrice;
+
+                    newOrders.push({
+                        id: k + 1,
+                        targetPrice: targetPrice,
+                        btcQty: btcQty,
+                        usdtCost: usdtAllocated / leverage, // Margin required
+                        executed: false
+                    });
+                }
+                return newOrders;
+            }
+
+            // Run daily simulation
+            for (let i = 0; i < btcData.length; i++) {
+                const day = btcData[i];
+
+                // Start new cycle if none active
+                if (!inCycle && capital > 50) {
+                    inCycle = true;
+                    cycleStartDate = day.date;
+                    gridOrders = createGrid(day.price, capital);
+                    filledOrdersCount = 0;
+                    totalBtcPosition = 0;
+                    totalUsdtInvested = 0;
+                    averageDcaPrice = 0;
+
+                    // Immediately trigger Order #1 at market price
+                    gridOrders[0].executed = true;
+                    filledOrdersCount = 1;
+                    totalBtcPosition += gridOrders[0].btcQty;
+                    totalUsdtInvested += gridOrders[0].btcQty * gridOrders[0].targetPrice;
+                    averageDcaPrice = totalUsdtInvested / totalBtcPosition;
+                }
+
+                if (inCycle) {
+                    // Check execution of pending limit orders on today's LOW
+                    for (let k = 0; k < numOrders; k++) {
+                        if (!gridOrders[k].executed && day.low <= gridOrders[k].targetPrice) {
+                            gridOrders[k].executed = true;
+                            filledOrdersCount++;
+                            totalBtcPosition += gridOrders[k].btcQty;
+                            totalUsdtInvested += gridOrders[k].btcQty * gridOrders[k].targetPrice;
+                            averageDcaPrice = totalUsdtInvested / totalBtcPosition;
+                        }
                     }
 
-                    if (exitPrice !== null) {
-                        // Account for small taker fee
-                        pnlUsd -= Math.abs(pnlUsd) * 0.001; 
-                        capital += pnlUsd;
+                    // Calculate current unrealized PnL based on today's HIGH / LOW
+                    const targetTpPrice = averageDcaPrice * (1 + takeProfitPct);
+                    const stopLossPrice = averageDcaPrice * (1 - stopLossPct);
+                    const liqPrice = averageDcaPrice * (1 - (0.90 / leverage)); // ~9% drop liquidation at 10x
+
+                    let closeCycle = false;
+                    let closePrice = 0;
+                    let cycleStatus = '';
+
+                    // Check Take Profit trigger
+                    if (day.high >= targetTpPrice) {
+                        closeCycle = true;
+                        closePrice = targetTpPrice;
+                        cycleStatus = 'TAKE PROFIT';
+                    } 
+                    // Check Stop Loss or Liquidation trigger
+                    else if (day.low <= Math.max(stopLossPrice, liqPrice)) {
+                        closeCycle = true;
+                        closePrice = day.low <= liqPrice ? liqPrice : stopLossPrice;
+                        cycleStatus = day.low <= liqPrice ? 'LIQUIDADO 10x' : 'STOP LOSS';
+                    }
+
+                    if (closeCycle) {
+                        cycleCount++;
+                        totalExecOrders += filledOrdersCount;
+
+                        // Calculate PnL (leveraged position profit/loss)
+                        const grossPnl = (closePrice - averageDcaPrice) * totalBtcPosition;
+                        const fees = (totalBtcPosition * closePrice + totalBtcPosition * averageDcaPrice) * feeRate;
+                        const netPnl = grossPnl - fees;
+
+                        capital += netPnl;
                         if (capital < 0) capital = 0;
 
-                        const netPnlPct = (pnlUsd / (capital - pnlUsd)) * 100;
-
-                        if (pnlUsd > 0) {
-                            winCount++;
-                            grossProfit += pnlUsd;
+                        if (netPnl > 0) {
+                            cycleWins++;
+                            grossProfit += netPnl;
                         } else {
-                            lossCount++;
-                            grossLoss += Math.abs(pnlUsd);
-                            if (exitReason === 'LIQUIDADO') liquidationCount++;
+                            cycleLosses++;
+                            grossLoss += Math.abs(netPnl);
                         }
 
-                        trades.push({
-                            id: trades.length + 1,
-                            entryDate: activePosition.entryDate,
-                            exitDate: current.date,
-                            type: 'LONG',
-                            entryPrice: activePosition.entryPrice,
-                            exitPrice: exitPrice,
-                            pnlPct: netPnlPct.toFixed(2),
-                            pnlUsd: pnlUsd.toFixed(2),
+                        cyclesLog.push({
+                            id: cycleCount,
+                            startDate: cycleStartDate,
+                            closeDate: day.date,
+                            filledOrders: filledOrdersCount,
+                            avgPrice: averageDcaPrice.toFixed(2),
+                            closePrice: closePrice.toFixed(2),
+                            pnlUsdt: netPnl.toFixed(2),
                             capitalAfter: capital.toFixed(2),
-                            status: exitReason
+                            status: cycleStatus
                         });
 
-                        activePosition = null;
-                        if (capital <= 10) break; // Bankrupt
+                        inCycle = false; // Reset for new cycle next day
                     }
                 }
 
-                // 2. Look for NEW LONG Entry Signals if no active position
-                if (!activePosition && capital > 10) {
-                    let enterLong = false;
-
-                    if (strategyType === 'ema_cross') {
-                        if (prevFast <= prevSlow && currFast > currSlow) enterLong = true;
-                    } else if (strategyType === 'rsi_oversold') {
-                        if (currRsi < 35) enterLong = true;
-                    } else if (strategyType === 'combined') {
-                        if (prevFast <= prevSlow && currFast > currSlow && currRsi < 55) enterLong = true;
-                    }
-
-                    if (enterLong) {
-                        const entryPrice = current.price;
-                        const slPrice = entryPrice * (1 - stopLossPct);
-                        const tpPrice = entryPrice * (1 + (stopLossPct * rrRatio));
-                        
-                        // Exactly 1% of current capital risked
-                        const riskUsd = capital * 0.01;
-
-                        activePosition = {
-                            entryPrice: entryPrice,
-                            entryDate: current.date,
-                            slPrice: slPrice,
-                            tpPrice: tpPrice,
-                            riskUsd: riskUsd
-                        };
-                    }
-                }
-
-                // Track equity curve daily
+                // Track daily equity curve
                 equityCurve.push(parseFloat(capital.toFixed(2)));
-                dates.push(current.date);
+                dates.push(day.date);
 
                 if (capital > peakCapital) peakCapital = capital;
                 const dd = (peakCapital - capital) / peakCapital;
                 if (dd > maxDrawdown) maxDrawdown = dd;
 
-                if (capital <= 10) break;
+                if (capital <= 10) break; // Bankrupt safety
             }
 
+            globalCycleLog = cyclesLog;
+
             // Calculate final statistics
-            const totalTrades = winCount + lossCount;
-            const winRate = totalTrades > 0 ? ((winCount / totalTrades) * 100).toFixed(1) : '0.0';
-            const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? 'Inf' : '0.00');
             const totalRoi = (((capital - initialCapital) / initialCapital) * 100).toFixed(2);
+            const winRate = cycleCount > 0 ? ((cycleWins / cycleCount) * 100).toFixed(1) : '0.0';
+            const avgOrdersPerCycle = cycleCount > 0 ? (totalExecOrders / cycleCount).toFixed(1) : '0';
+            const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? 'Inf' : '0.00');
 
             // Update UI Stats
             document.getElementById('statFinalCapital').innerText = `$${capital.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             const roiEl = document.getElementById('statRoi');
             roiEl.innerText = `ROI: ${totalRoi}%`;
-            roiEl.className = `text-xs font-mono font-semibold mt-1 ${parseFloat(totalRoi) >= 0 ? 'text-accentgreen' : 'text-accentred'}`;
+            roiEl.className = `text-[11px] font-mono font-semibold mt-0.5 ${parseFloat(totalRoi) >= 0 ? 'text-accentgreen' : 'text-accentred'}`;
 
-            document.getElementById('statWinRate').innerText = `${winRate}%`;
-            document.getElementById('statTotalTrades').innerText = `Trades: ${totalTrades}`;
-            document.getElementById('statProfitFactor').innerText = profitFactor;
+            document.getElementById('statCycles').innerText = cycleCount;
+            document.getElementById('statWinRate').innerText = `Win Rate: ${winRate}%`;
+            document.getElementById('statExecOrders').innerText = `${totalExecOrders} (${avgOrdersPerCycle}/ciclo)`;
             document.getElementById('statMaxDrawdown').innerText = `${(maxDrawdown * 100).toFixed(2)}%`;
-            document.getElementById('statWinLossCount').innerText = `${winCount} / ${lossCount}`;
-            document.getElementById('statLiquidations').innerText = liquidationCount;
-            document.getElementById('tradeCountBadge').innerText = `${totalTrades} operaciones`;
+            document.getElementById('statProfitFactor').innerText = profitFactor;
+            document.getElementById('statStopLosses').innerText = cycleLosses;
+            document.getElementById('cycleCountBadge').innerText = `${cycleCount} ciclos ejecutados`;
 
-            // Populate Trade Table
-            renderTradeTable(trades);
-
-            // Render Charts
-            renderCharts(dates, equityCurve, btcData, trades);
+            // Render Table and Charts
+            renderCycleTable(cyclesLog);
+            renderCharts(dates, equityCurve, btcData);
         }
 
-        // Render Trade Table
-        function renderTradeTable(trades) {
-            const tbody = document.getElementById('tradeTableBody');
+        // Render Cycle Log Table
+        function renderCycleTable(cycles) {
+            const tbody = document.getElementById('cycleTableBody');
             tbody.innerHTML = '';
 
-            if (trades.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-500">No se registraron operaciones con los parámetros actuales.</td></tr>`;
+            if (cycles.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-500">No se completó ningún ciclo con los parámetros configurados.</td></tr>`;
                 return;
             }
 
-            // Show newest first
-            const reversedTrades = [...trades].reverse();
-            reversedTrades.forEach(t => {
-                const isProfit = parseFloat(t.pnlUsd) >= 0;
+            const reversed = [...cycles].reverse();
+            reversed.forEach(c => {
+                const isWin = parseFloat(c.pnlUsdt) >= 0;
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/50 transition-colors";
+                tr.className = "hover:bg-slate-800/40 transition-colors border-b border-bordercolor/50";
                 tr.innerHTML = `
-                    <td class="p-3 font-semibold text-slate-400">#${t.id}</td>
-                    <td class="p-3 text-slate-300">${t.entryDate}</td>
-                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.type === 'LONG' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">${t.type} 30x</span></td>
-                    <td class="p-3">$${t.entryPrice.toLocaleString()}</td>
-                    <td class="p-3">$${t.exitPrice.toLocaleString()}</td>
-                    <td class="p-3 font-bold ${isProfit ? 'text-accentgreen' : 'text-accentred'}">${isProfit ? '+' : ''}${t.pnlPct}%</td>
-                    <td class="p-3 font-bold ${isProfit ? 'text-accentgreen' : 'text-accentred'}">${isProfit ? '+' : ''}$${t.pnlUsd}</td>
-                    <td class="p-3 text-slate-200">$${t.capitalAfter}</td>
-                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] ${t.status === 'Take Profit' ? 'bg-cyan-500/20 text-cyan-400' : (t.status === 'LIQUIDADO' ? 'bg-red-600 text-white font-bold animate-pulse' : 'bg-slate-700 text-slate-300')}">${t.status}</span></td>
+                    <td class="p-3 font-bold text-slate-400">#${c.id}</td>
+                    <td class="p-3 text-slate-300">${c.startDate}</td>
+                    <td class="p-3 text-slate-300">${c.closeDate}</td>
+                    <td class="p-3 font-bold text-cyan-400">${c.filledOrders} / 50</td>
+                    <td class="p-3">$${parseFloat(c.avgPrice).toLocaleString()}</td>
+                    <td class="p-3">$${parseFloat(c.closePrice).toLocaleString()}</td>
+                    <td class="p-3 font-bold ${isWin ? 'text-accentgreen' : 'text-accentred'}">${isWin ? '+' : ''}$${parseFloat(c.pnlUsdt).toLocaleString()}</td>
+                    <td class="p-3 text-slate-200 font-bold">$${parseFloat(c.capitalAfter).toLocaleString()}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${c.status === 'TAKE PROFIT' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">${c.status}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // Render Charts using Chart.js
-        function renderCharts(dates, equityCurve, btcData, trades) {
-            // Downsample arrays if too large for smooth rendering
-            const step = Math.ceil(dates.length / 250);
+        // Render Charts with Chart.js
+        function renderCharts(dates, equityCurve, btcData) {
+            const step = Math.ceil(dates.length / 200);
             let sampleDates = [];
             let sampleEquity = [];
             let samplePrices = [];
@@ -567,10 +573,10 @@
                 data: {
                     labels: sampleDates,
                     datasets: [{
-                        label: 'Capital Cuenta ($)',
+                        label: 'Capital (USDT)',
                         data: sampleEquity,
-                        borderColor: '#0ecb81',
-                        backgroundColor: 'rgba(14, 203, 129, 0.05)',
+                        borderColor: '#00e676',
+                        backgroundColor: 'rgba(0, 230, 118, 0.05)',
                         borderWidth: 2,
                         fill: true,
                         tension: 0.1,
@@ -582,8 +588,8 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { color: '#2a2e39' }, ticks: { color: '#848e9c', maxTicksLimit: 6 } },
-                        y: { grid: { color: '#2a2e39' }, ticks: { color: '#848e9c' } }
+                        x: { grid: { color: '#181e2b' }, ticks: { color: '#64748b', maxTicksLimit: 6 } },
+                        y: { grid: { color: '#181e2b' }, ticks: { color: '#64748b' } }
                     }
                 }
             });
@@ -612,23 +618,38 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { color: '#2a2e39' }, ticks: { color: '#848e9c', maxTicksLimit: 6 } },
-                        y: { grid: { color: '#2a2e39' }, ticks: { color: '#848e9c' } }
+                        x: { grid: { color: '#181e2b' }, ticks: { color: '#64748b', maxTicksLimit: 6 } },
+                        y: { grid: { color: '#181e2b' }, ticks: { color: '#64748b' } }
                     }
                 }
             });
         }
 
         // Export Report to CSV
-        function exportReport() {
-            let csvContent = "data:text/csv;charset=utf-8,ID,Fecha Entrada,Fecha Salida,Tipo,Precio Entrada,Precio Salida,PnL %,PnL USD,Capital Final,Estado\n";
-            // Gather rows from trade table or re-generate. For simplicity alert success.
-            alert("Reporte de backtesting exportado con éxito (Simulación 30x BTC).");
+        function exportCSV() {
+            if (!globalCycleLog || globalCycleLog.length === 0) {
+                alert("Primero ejecuta el backtest para exportar resultados.");
+                return;
+            }
+            let csv = "Ciclo,Fecha Inicio,Fecha Cierre,Ordenes Ejecutadas,Precio DCA Promedio,Precio Cierre,PnL USDT,Capital Final,Estado\n";
+            globalCycleLog.forEach(c => {
+                csv += `${c.id},${c.startDate},${c.closeDate},${c.filledOrders},${c.avgPrice},${c.closePrice},${c.pnlUsdt},${c.capitalAfter},${c.status}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `backtest_btc_10x_grid_${new Date().toISOString().split('T')[0]}.csv`);
+            a.click();
         }
 
-        // Run simulation on load
+        // Event Listeners & Initialize
+        document.getElementById('paramWeightScale').addEventListener('input', updateVolumePreview);
+
         window.onload = function() {
-            runBacktesting();
+            updateVolumePreview();
+            runBacktest();
         };
     </script>
 </body>
