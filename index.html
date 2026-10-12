@@ -69,9 +69,9 @@
             <div class="flex items-center justify-between border-b border-bordercolor pb-3">
                 <h2 class="text-sm font-semibold uppercase tracking-wider text-white flex items-center gap-2">
                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                    Parámetros de Estrategia
+                    Parámetros de Estrategia (LONG Only)
                 </h2>
-                <span class="text-xs font-mono text-cyan-400 bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/50">30x Fijo</span>
+                <span class="text-xs font-mono text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-800/50">30x LONG</span>
             </div>
 
             <!-- Asset & Leverage Info -->
@@ -86,6 +86,17 @@
                 <div>
                     <label class="block text-xs font-medium text-slate-400 mb-1">Capital Inicial (USD)</label>
                     <input type="number" id="initialCapital" value="1000" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
+                </div>
+
+                <div class="bg-darkbg/50 border border-bordercolor rounded-lg p-3 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Riesgo por Operación:</span>
+                        <span class="text-emerald-400 font-mono font-bold">1.0% del Capital</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Dirección Permitida:</span>
+                        <span class="text-cyan-400 font-mono font-bold">SOLO LONG (Alcista)</span>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -106,32 +117,37 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Stop Loss (%)</label>
-                        <input type="number" step="0.1" id="stopLoss" value="2.5" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
-                        <p class="text-[10px] text-amber-400/80 mt-1">Con 30x, SL &gt; 3.3% liquida posición.</p>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Stop Loss Dist (%)</label>
+                        <input type="number" step="0.1" id="stopLoss" value="2.0" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
+                        <p class="text-[10px] text-slate-400 mt-1">Define el 1% de riesgo de cuenta.</p>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-400 mb-1">Take Profit (%)</label>
-                        <input type="number" step="0.1" id="takeProfit" value="6.0" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Ratio R:R (Take Profit)</label>
+                        <select id="riskRewardRatio" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
+                            <option value="2">2.0R (TP = 2x SL)</option>
+                            <option value="2.5" selected>2.5R (TP = 2.5x SL)</option>
+                            <option value="3">3.0R (TP = 3x SL)</option>
+                            <option value="4">4.0R (TP = 4x SL)</option>
+                        </select>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Estrategia de Entrada</label>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Estrategia de Entrada (LONG)</label>
                     <select id="strategyType" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-cyan-500">
-                        <option value="ema_cross">Cruce de EMAs (Rápida / Lenta)</option>
-                        <option value="rsi_extremes">RSI Extremos (&lt;30 Long / &gt;70 Short)</option>
-                        <option value="combined">Combinado (EMA + Filtro RSI)</option>
+                        <option value="ema_cross">Cruce alcista de EMAs</option>
+                        <option value="rsi_oversold">RSI en Sobreventa (&lt;35)</option>
+                        <option value="combined">Combinado (Cruce EMA + RSI &lt; 55)</option>
                     </select>
                 </div>
             </div>
 
-            <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-300 leading-relaxed mt-2">
+            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-300 leading-relaxed mt-2">
                 <span class="font-bold flex items-center gap-1 mb-1">
-                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    Aviso de Margen 30x
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Gestión de Riesgo 1% & R:R &gt;= 2
                 </span>
-                El apalancamiento 30x multiplica por 30 las ganancias y pérdidas. Movimientos adversos del 3.33% sin contar comisiones activan liquidación total del margen.
+                Cada trade arriesga exactamente el 1% del capital actual. El Take Profit se calcula automáticamente multiplicando la distancia del Stop Loss por el Ratio R:R seleccionado (mínimo 2R).
             </div>
         </aside>
 
@@ -252,22 +268,19 @@
             let price = 42000; // Starting Jan 2024 price approx
             const startDate = new Date('2024-01-01');
             
-            // Seeded pseudo-random walk with realistic crypto volatility & trends (Halving year 2024 boom & subsequent consolidation)
             for (let i = 0; i < 1000; i++) {
                 const currentDate = new Date(startDate);
                 currentDate.setDate(startDate.getDate() + i);
 
-                // Volatility factor
-                let trend = 0.0008; // slight upward trend over 2 years
-                if (i > 90 && i < 180) trend = 0.0025; // 2024 post-halving rally
-                if (i > 300 && i < 450) trend = -0.0012; // correction phase
-                if (i > 600) trend = 0.0015; // 2025/2026 continuation
+                let trend = 0.0009; // slight upward trend over 2 years
+                if (i > 90 && i < 180) trend = 0.0028; // 2024 post-halving rally
+                if (i > 300 && i < 450) trend = -0.0010; // correction phase
+                if (i > 600) trend = 0.0018; // 2025/2026 continuation
 
-                const randomChange = (Math.random() - 0.49) * 0.035; // 3.5% daily volatility max
+                const randomChange = (Math.random() - 0.48) * 0.035; // 3.5% daily volatility max
                 price = price * (1 + trend + randomChange);
                 if (price < 15000) price = 15000;
 
-                // Simple high/low calculation
                 const high = price * (1 + Math.random() * 0.02);
                 const low = price * (1 - Math.random() * 0.02);
 
@@ -334,14 +347,14 @@
             return rsiArray;
         }
 
-        // Main Backtesting Engine Execution
+        // Main Backtesting Engine Execution (LONG ONLY, 1% Risk, R:R >= 2, 30x)
         function runBacktesting() {
             const initialCapital = parseFloat(document.getElementById('initialCapital').value) || 1000;
             const fastEmaPeriod = parseInt(document.getElementById('fastEma').value) || 9;
             const slowEmaPeriod = parseInt(document.getElementById('slowEma').value) || 21;
             const rsiPeriod = parseInt(document.getElementById('rsiPeriod').value) || 14;
             const stopLossPct = parseFloat(document.getElementById('stopLoss').value) / 100;
-            const takeProfitPct = parseFloat(document.getElementById('takeProfit').value) / 100;
+            const rrRatio = parseFloat(document.getElementById('riskRewardRatio').value) || 2.5;
             const strategyType = document.getElementById('strategyType').value;
             const leverage = 30; // Fixed 30x
 
@@ -357,14 +370,14 @@
             let equityCurve = [initialCapital];
             let dates = [btcData[0].date];
 
-            let activePosition = null; // { type: 'LONG'|'SHORT', entryPrice, entryDate, size }
+            let activePosition = null; // { entryPrice, entryDate, slPrice, tpPrice, riskUsd }
             let winCount = 0;
             let lossCount = 0;
             let liquidationCount = 0;
             let grossProfit = 0;
             let grossLoss = 0;
 
-            // Loop through historical data starting after indicators warm up
+            // Loop through historical data
             for (let i = Math.max(slowEmaPeriod, rsiPeriod) + 1; i < btcData.length; i++) {
                 const current = btcData[i];
                 const prevFast = fastEma[i - 1];
@@ -373,68 +386,39 @@
                 const currSlow = slowEma[i];
                 const currRsi = rsi[i];
 
-                // 1. Manage Active Position (Check SL, TP, or Liquidation on High/Low)
+                // 1. Manage Active LONG Position
                 if (activePosition) {
                     let exitPrice = null;
                     let exitReason = null;
-                    let pnlPctWithoutLev = 0;
+                    let pnlUsd = 0;
 
-                    if (activePosition.type === 'LONG') {
-                        const slPrice = activePosition.entryPrice * (1 - stopLossPct);
-                        const tpPrice = activePosition.entryPrice * (1 + takeProfitPct);
-                        // Liquidation check for 30x: approx 3.33% adverse price movement without maintenance margin cushion
-                        const liqPrice = activePosition.entryPrice * (1 - (0.95 / leverage));
+                    // 30x Liquidation threshold for LONG
+                    const liqPrice = activePosition.entryPrice * (1 - (0.95 / leverage));
 
-                        if (current.low <= liqPrice) {
-                            exitPrice = liqPrice;
-                            exitReason = 'LIQUIDADO';
-                        } else if (current.low <= slPrice) {
-                            exitPrice = slPrice;
-                            exitReason = 'Stop Loss';
-                        } else if (current.high >= tpPrice) {
-                            exitPrice = tpPrice;
-                            exitReason = 'Take Profit';
-                        }
-
-                        if (exitPrice !== null) {
-                            pnlPctWithoutLev = (exitPrice - activePosition.entryPrice) / activePosition.entryPrice;
-                        }
-                    } else if (activePosition.type === 'SHORT') {
-                        const slPrice = activePosition.entryPrice * (1 + stopLossPct);
-                        const tpPrice = activePosition.entryPrice * (1 - takeProfitPct);
-                        const liqPrice = activePosition.entryPrice * (1 + (0.95 / leverage));
-
-                        if (current.high >= liqPrice) {
-                            exitPrice = liqPrice;
-                            exitReason = 'LIQUIDADO';
-                        } else if (current.high >= slPrice) {
-                            exitPrice = slPrice;
-                            exitReason = 'Stop Loss';
-                        } else if (current.low <= tpPrice) {
-                            exitPrice = tpPrice;
-                            exitReason = 'Take Profit';
-                        }
-
-                        if (exitPrice !== null) {
-                            pnlPctWithoutLev = (activePosition.entryPrice - exitPrice) / activePosition.entryPrice;
-                        }
+                    if (current.low <= liqPrice) {
+                        exitPrice = liqPrice;
+                        exitReason = 'LIQUIDADO';
+                        pnlUsd = -activePosition.riskUsd * (stopLossPct > 0 ? (activePosition.entryPrice - liqPrice) / (activePosition.entryPrice * stopLossPct) : 1);
+                        if (pnlUsd < -capital) pnlUsd = -capital;
+                    } else if (current.low <= activePosition.slPrice) {
+                        exitPrice = activePosition.slPrice;
+                        exitReason = 'Stop Loss';
+                        pnlUsd = -activePosition.riskUsd; // exactly 1% risk of account at entry
+                    } else if (current.high >= activePosition.tpPrice) {
+                        exitPrice = activePosition.tpPrice;
+                        exitReason = 'Take Profit';
+                        pnlUsd = activePosition.riskUsd * rrRatio; // Reward based on R:R ratio
                     }
 
-                    // If position exited
                     if (exitPrice !== null) {
-                        let netPnlPct = pnlPctWithoutLev * leverage;
-                        // Account for exchange fees (e.g. 0.06% taker fee on entry and exit leveraged)
-                        netPnlPct -= 0.0012; 
-
-                        if (exitReason === 'LIQUIDADO') {
-                            netPnlPct = -1.0; // Total loss of margin allocation for this trade
-                        }
-
-                        const pnlUsd = capital * netPnlPct;
+                        // Account for small taker fee
+                        pnlUsd -= Math.abs(pnlUsd) * 0.001; 
                         capital += pnlUsd;
                         if (capital < 0) capital = 0;
 
-                        if (netPnlPct > 0) {
+                        const netPnlPct = (pnlUsd / (capital - pnlUsd)) * 100;
+
+                        if (pnlUsd > 0) {
                             winCount++;
                             grossProfit += pnlUsd;
                         } else {
@@ -447,40 +431,46 @@
                             id: trades.length + 1,
                             entryDate: activePosition.entryDate,
                             exitDate: current.date,
-                            type: activePosition.type,
+                            type: 'LONG',
                             entryPrice: activePosition.entryPrice,
                             exitPrice: exitPrice,
-                            pnlPct: (netPnlPct * 100).toFixed(2),
+                            pnlPct: netPnlPct.toFixed(2),
                             pnlUsd: pnlUsd.toFixed(2),
                             capitalAfter: capital.toFixed(2),
                             status: exitReason
                         });
 
                         activePosition = null;
-                        if (capital <= 0) break; // Bankrupt
+                        if (capital <= 10) break; // Bankrupt
                     }
                 }
 
-                // 2. Look for New Entry Signals if no active position
+                // 2. Look for NEW LONG Entry Signals if no active position
                 if (!activePosition && capital > 10) {
-                    let signal = null; // 'LONG' or 'SHORT'
+                    let enterLong = false;
 
                     if (strategyType === 'ema_cross') {
-                        if (prevFast <= prevSlow && currFast > currSlow) signal = 'LONG';
-                        else if (prevFast >= prevSlow && currFast < currSlow) signal = 'SHORT';
-                    } else if (strategyType === 'rsi_extremes') {
-                        if (currRsi < 32) signal = 'LONG';
-                        else if (currRsi > 68) signal = 'SHORT';
+                        if (prevFast <= prevSlow && currFast > currSlow) enterLong = true;
+                    } else if (strategyType === 'rsi_oversold') {
+                        if (currRsi < 35) enterLong = true;
                     } else if (strategyType === 'combined') {
-                        if (prevFast <= prevSlow && currFast > currSlow && currRsi < 60) signal = 'LONG';
-                        else if (prevFast >= prevSlow && currFast < currSlow && currRsi > 40) signal = 'SHORT';
+                        if (prevFast <= prevSlow && currFast > currSlow && currRsi < 55) enterLong = true;
                     }
 
-                    if (signal) {
+                    if (enterLong) {
+                        const entryPrice = current.price;
+                        const slPrice = entryPrice * (1 - stopLossPct);
+                        const tpPrice = entryPrice * (1 + (stopLossPct * rrRatio));
+                        
+                        // Exactly 1% of current capital risked
+                        const riskUsd = capital * 0.01;
+
                         activePosition = {
-                            type: signal,
-                            entryPrice: current.price,
-                            entryDate: current.date
+                            entryPrice: entryPrice,
+                            entryDate: current.date,
+                            slPrice: slPrice,
+                            tpPrice: tpPrice,
+                            riskUsd: riskUsd
                         };
                     }
                 }
@@ -493,7 +483,7 @@
                 const dd = (peakCapital - capital) / peakCapital;
                 if (dd > maxDrawdown) maxDrawdown = dd;
 
-                if (capital <= 0) break;
+                if (capital <= 10) break;
             }
 
             // Calculate final statistics
