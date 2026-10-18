@@ -1,656 +1,768 @@
-<!DOCTYPE html>
-<html lang="es" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BTC 10x Grid DCA Backtesting Terminal (2024-2026)</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        darkbg: '#080a0f',
-                        cardbg: '#11151f',
-                        cardbgLight: '#181e2b',
-                        bordercolor: '#232a3b',
-                        accentgreen: '#00e676',
-                        accentred: '#ff1744',
-                        terminalcyan: '#00f2fe',
-                        ambergold: '#ffb300'
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Google Fonts Inter & JetBrains Mono -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #080a0f; color: #d1d4dc; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #080a0f; }
-        ::-webkit-scrollbar-thumb { background: #232a3b; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #323b52; }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Simulador Escalera SOL</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: parámetros fijos a la izquierda, resultados a la derecha; en teléfono todo en una columna.
+   Tipografía: IBM Plex Sans para la interfaz, IBM Plex Mono para cada número. */
+:root {
+  --bg: #f1f4f2;
+  --panel: #ffffff;
+  --panel-2: #e8edea;
+  --ink: #13201b;
+  --ink-2: #3c4c45;
+  --muted: #62716a;
+  --line: #d3dbd6;
+  --band: #d7dfda;
+  --accent: #2a78d6;
+  --accent-ink: #ffffff;
+  --good: #1b7a4b;
+  --warn: #9a6200;
+  --serious: #b9531a;
+  --bad: #c22f2f;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1614; --panel: #151f1c; --panel-2: #1c2824; --ink: #e5eeea; --ink-2: #b7c6bf;
+    --muted: #8a9a93; --line: #2a3833; --band: #25322d; --accent: #3987e5; --accent-ink: #06141f;
+    --good: #4cc38a; --warn: #e0a53a; --serious: #f08a4b; --bad: #f26b6b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1614; --panel: #151f1c; --panel-2: #1c2824; --ink: #e5eeea; --ink-2: #b7c6bf;
+  --muted: #8a9a93; --line: #2a3833; --band: #25322d; --accent: #3987e5; --accent-ink: #06141f;
+  --good: #4cc38a; --warn: #e0a53a; --serious: #f08a4b; --bad: #f26b6b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1280px; margin: 0 auto; }
+header { margin-bottom: 18px; }
+h1 { font-size: 22px; font-weight: 600; margin: 0 0 2px; letter-spacing: -0.01em; text-wrap: balance; }
+header p { margin: 0; color: var(--ink-2); max-width: 70ch; }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
+.layout { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+fieldset { border: 0; padding: 0; margin: 0 0 16px; min-width: 0; }
+legend { padding: 0; margin-bottom: 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.fields .full { grid-column: 1 / -1; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+input[type=number], input[type=text], select {
+  font-family: var(--mono); font-size: 13px; padding: 7px 8px; width: 100%; min-width: 0;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink);
+}
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--bg); }
+.seg label { flex: 1; position: relative; flex-direction: row; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span { flex: 1; text-align: center; padding: 7px 8px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.seg input:checked + span { background: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
+button {
+  font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 8px 12px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+}
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:disabled { opacity: 0.55; cursor: progress; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+.err { color: var(--bad); font-size: 13px; margin: 0 0 10px; }
+.err:empty { display: none; }
+.verdict { margin: 0; font-size: 15px; text-wrap: pretty; max-width: 80ch; }
+.datainfo { margin: 8px 0 0; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.kpi { background: var(--panel-2); border-radius: 6px; padding: 10px 12px; min-width: 0; }
+.kpi b { display: block; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.kpi .v { font-family: var(--mono); font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.kpi small { display: block; color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.tablewrap { overflow: auto; max-height: 380px; border: 1px solid var(--line); border-radius: 6px; }
+.tablewrap.short { max-height: none; }
+table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { position: sticky; top: 0; background: var(--panel-2); font-family: var(--sans); font-weight: 600; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+th:first-child, td:first-child { text-align: left; }
+tr:last-child td { border-bottom: 0; }
+.bar { position: relative; z-index: 0; }
+.bar::before { content: ""; position: absolute; z-index: -1; right: 0; top: 3px; bottom: 3px; width: var(--w, 0%); background: color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 2px; }
+.pill { display: inline-block; padding: 0 7px; border-radius: 999px; font-family: var(--sans); font-size: 11px; font-weight: 500; border: 1px solid currentColor; }
+.pill.tp { color: var(--good); } .pill.be { color: var(--warn); } .pill.stop { color: var(--serious); } .pill.liq { color: var(--bad); }
+.tight { color: var(--bad); font-weight: 600; }
+.sumline { margin: 10px 0 0; font-size: 13px; color: var(--ink-2); }
+.sumline span { font-family: var(--mono); color: var(--ink); white-space: nowrap; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); padding: 6px 9px; border-radius: 6px; font: 12px/1.45 var(--mono); white-space: nowrap; z-index: 3; }
+.legend { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin: 0 0 8px; }
+.legend i { display: inline-flex; align-items: center; gap: 6px; font-style: normal; }
+.legend svg { width: 12px; height: 12px; }
+.tick { fill: var(--muted); font: 11px var(--mono); }
+.grid { stroke: var(--line); stroke-width: 1; }
+.pb { fill: var(--band); stroke: none; }
+.pl { fill: none; stroke: var(--ink-2); stroke-width: 1.25; stroke-linejoin: round; }
+.el { fill: none; stroke: var(--accent); stroke-width: 1.75; stroke-linejoin: round; }
+.basel { stroke: var(--muted); stroke-dasharray: 4 4; stroke-width: 1; }
+.cross { stroke: var(--muted); stroke-dasharray: 3 3; stroke-width: 1; }
+.dotp { fill: var(--panel); stroke: var(--ink); stroke-width: 2; }
+.m-tp { fill: var(--good); stroke: var(--panel); stroke-width: 1; }
+.m-be { fill: var(--warn); stroke: var(--panel); stroke-width: 1.5; }
+.m-stop { fill: var(--serious); stroke: var(--panel); stroke-width: 1.5; }
+.m-liq { stroke: var(--bad); stroke-width: 2.4; fill: none; stroke-linecap: round; }
+details { margin-top: 10px; }
+summary { cursor: pointer; font-weight: 500; color: var(--ink-2); font-size: 13px; }
+details ul { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 13px; }
+details li { margin-bottom: 3px; }
+pre { margin: 8px 0 0; padding: 10px 12px; background: var(--panel-2); border-radius: 6px; overflow-x: auto; font: 12px/1.5 var(--mono); color: var(--ink); }
+.mc-sum { margin: 0 0 10px; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
 
-    <!-- HEADER -->
-    <header class="bg-cardbg border-b border-bordercolor px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-0 z-50">
-        <div class="flex items-center space-x-3">
-            <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-400 p-2.5 rounded-xl text-black font-bold flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            </div>
-            <div>
-                <h1 class="text-xl font-bold tracking-wider text-white flex items-center gap-2">
-                    BTC 10x Grid DCA <span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono font-semibold">50 ÓRDENES LONG</span>
-                </h1>
-                <p class="text-xs text-slate-400 font-mono">Simulador de Rejilla Escalonada y Recompra Martingala (2024 - 2026)</p>
-            </div>
+<div class="wrap">
+  <header>
+    <h1>Simulador Escalera SOL</h1>
+    <p>Longs escalonados en SOL a 30x, con más cantidad en las órdenes de abajo. Cierre en cero al llenarse las 2 últimas órdenes y take profit por ROE. Probá los parámetros antes de dejar correr el bot.</p>
+  </header>
+
+  <div class="layout">
+    <aside class="panel" aria-label="Parámetros">
+      <p class="err" id="errBox" role="alert"></p>
+      <fieldset>
+        <legend>Escalera</legend>
+        <div class="fields">
+          <label>Capital inicial (USDT)<input type="number" id="capital" value="1000" min="1" step="any" inputmode="decimal"></label>
+          <label>Margen por ciclo (USDT)<input type="number" id="margin" value="100" min="1" step="any" inputmode="decimal"></label>
+          <label>Apalancamiento (x)<input type="number" id="lev" value="30" min="1" max="125" step="1" inputmode="numeric"></label>
+          <label>Cantidad de órdenes<input type="number" id="n" value="8" min="2" max="30" step="1" inputmode="numeric"></label>
+          <label>Rango hacia abajo (%)<input type="number" id="range" value="3" min="0.1" step="any" inputmode="decimal"></label>
+          <label>Crecimiento por orden (×)<input type="number" id="growth" value="1.35" min="1" step="any" inputmode="decimal"></label>
         </div>
-        <div class="flex items-center gap-3">
-            <button onclick="runBacktest()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2 text-sm font-mono cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                EJECUTAR BACKTEST
-            </button>
-            <button onclick="exportCSV()" class="bg-bordercolor hover:bg-slate-700 text-white font-medium px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 text-sm border border-slate-700 font-mono cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                CSV
-            </button>
+      </fieldset>
+      <fieldset>
+        <legend>Salidas</legend>
+        <div class="fields">
+          <label>TP por ROE (%)<input type="number" id="tproe" value="2.5" min="0.01" step="any" inputmode="decimal"></label>
+          <label>Colchón breakeven (%)<input type="number" id="befee" value="0.08" min="0" step="any" inputmode="decimal"></label>
+          <label class="full">Stop bajo la última orden (%), vacío = sin stop<input type="number" id="stop" value="" min="0" step="any" inputmode="decimal" placeholder="sin stop"></label>
         </div>
-    </header>
-
-    <!-- MAIN CONTAINER -->
-    <main class="flex-1 p-4 md:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-[1700px] w-full mx-auto">
-        
-        <!-- SIDEBAR: Control Panel -->
-        <aside class="lg:col-span-1 bg-cardbg border border-bordercolor rounded-xl p-5 flex flex-col gap-5 h-fit shadow-2xl">
-            <div class="flex items-center justify-between border-b border-bordercolor pb-3">
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2 font-mono">
-                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                    Parámetros del Grid
-                </h2>
-                <span class="text-[11px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">10x LONG</span>
+      </fieldset>
+      <fieldset>
+        <legend>Costos y riesgo</legend>
+        <div class="fields">
+          <label>Comisión maker (%)<input type="number" id="maker" value="0.02" min="0" step="any" inputmode="decimal"></label>
+          <label>Comisión taker (%)<input type="number" id="taker" value="0.05" min="0" step="any" inputmode="decimal"></label>
+          <label>Margen de mantenimiento (%)<input type="number" id="mmr" value="0.5" min="0" step="any" inputmode="decimal"></label>
+          <div class="full">
+            <label>Orden dentro de cada vela</label>
+            <div class="seg" role="radiogroup" aria-label="Orden dentro de cada vela">
+              <label><input type="radio" name="mode" value="pess" checked><span>Pesimista</span></label>
+              <label><input type="radio" name="mode" value="opt"><span>Optimista</span></label>
             </div>
-
-            <div class="space-y-4 text-xs font-mono">
-                <div>
-                    <label class="block text-slate-400 mb-1">Capital Inicial (USDT)</label>
-                    <input type="number" id="paramCapital" value="10000" step="500" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-slate-400 mb-1">Número de Ódenes</label>
-                        <input type="number" id="paramOrders" value="50" disabled class="w-full bg-darkbg/50 border border-bordercolor/60 rounded-lg px-3 py-2 text-slate-400 font-bold opacity-75 cursor-not-allowed">
-                    </div>
-                    <div>
-                        <label class="block text-slate-400 mb-1">Cobertura Caída (%)</label>
-                        <input type="number" id="paramDropCoverage" value="18" step="1" min="5" max="40" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
-                    </div>
-                </div>
-
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <label class="text-slate-400">Ponderación Tamaño Orden (Martingala)</label>
-                        <span id="weightVal" class="text-cyan-400 font-bold">1.05x</span>
-                    </div>
-                    <input type="range" id="paramWeightScale" min="1.00" max="1.15" step="0.01" value="1.05" oninput="document.getElementById('weightVal').innerText = parseFloat(this.value).toFixed(2) + 'x'" class="w-full accent-cyan-400 cursor-pointer">
-                    <p class="text-[10px] text-slate-500 mt-0.5">Factor multiplicador del capital para las órdenes inferiores.</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-slate-400 mb-1">Take Profit (%)</label>
-                        <input type="number" id="paramTakeProfit" value="2.5" step="0.1" min="0.5" max="10" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
-                        <p class="text-[10px] text-slate-500 mt-0.5">Sobre Precio Promedio (DCA)</p>
-                    </div>
-                    <div>
-                        <label class="block text-slate-400 mb-1">Stop Loss Máx (%)</label>
-                        <input type="number" id="paramStopLoss" value="9.0" step="0.5" min="3" max="15" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
-                        <p class="text-[10px] text-slate-500 mt-0.5">Cierre por Máximo Drawdown</p>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-slate-400 mb-1">Comisión Maker / Taker (%)</label>
-                    <input type="number" id="paramFee" value="0.04" step="0.01" class="w-full bg-darkbg border border-bordercolor rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-cyan-500">
-                </div>
-            </div>
-
-            <!-- Visual Preview of Order Volume Distribution -->
-            <div class="bg-cardbgLight border border-bordercolor rounded-xl p-3 space-y-2 text-xs">
-                <span class="text-slate-300 font-bold font-mono block border-b border-bordercolor/60 pb-1">Perfil de Distribución de Volumen (50 Niveles)</span>
-                <div class="flex items-end justify-between h-20 gap-0.5 pt-2" id="gridVolumePreview">
-                    <!-- Dynamic bars injected by script -->
-                </div>
-                <div class="flex justify-between text-[10px] font-mono text-slate-400 pt-1">
-                    <span>Orden #1 (Arriba)</span>
-                    <span>Orden #50 (Fondo)</span>
-                </div>
-            </div>
-
-            <div class="bg-cyan-950/30 border border-cyan-800/40 rounded-xl p-3 text-[11px] text-cyan-200/90 leading-relaxed font-mono">
-                <span class="font-bold flex items-center gap-1 mb-1 text-cyan-300">
-                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Estrategia DCA Escalonada 10x
-                </span>
-                El robot despliega 50 órdenes por debajo del precio. Si la cotización cae, compra progresivamente más pesado hacia abajo. Al alcanzar el +TP% sobre el promedio ponderado actual, vende todo, toma ganancias y reinicia un nuevo ciclo.
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT AREA -->
-        <div class="lg:col-span-3 flex flex-col gap-6">
-            
-            <!-- Key Metrics Cards -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 font-mono">
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-                    <span class="text-[11px] text-slate-400">Capital Final</span>
-                    <span id="statFinalCapital" class="text-base font-bold text-white mt-1">$0.00</span>
-                    <span id="statRoi" class="text-[11px] font-semibold text-slate-500 mt-0.5">ROI: 0.00%</span>
-                </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-                    <span class="text-[11px] text-slate-400">Ciclos Completados</span>
-                    <span id="statCycles" class="text-base font-bold text-emerald-400 mt-1">0</span>
-                    <span id="statWinRate" class="text-[11px] text-slate-400 mt-0.5">Win Rate: 0%</span>
-                </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-                    <span class="text-[11px] text-slate-400">Órdenes Ejecutadas</span>
-                    <span id="statExecOrders" class="text-base font-bold text-white mt-1">0</span>
-                    <span class="text-[11px] text-slate-500 mt-0.5">Prom. por ciclo</span>
-                </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-                    <span class="text-[11px] text-slate-400">Máx Drawdown</span>
-                    <span id="statMaxDrawdown" class="text-base font-bold text-red-400 mt-1">0.00%</span>
-                    <span class="text-[11px] text-slate-500 mt-0.5">Pico a Valle</span>
-                </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-                    <span class="text-[11px] text-slate-400">Factor de Ganancia</span>
-                    <span id="statProfitFactor" class="text-base font-bold text-cyan-400 mt-1">0.00</span>
-                    <span class="text-[11px] text-slate-500 mt-0.5">Gross P/L</span>
-                </div>
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-3.5 flex flex-col justify-between shadow-lg">
-                    <span class="text-[11px] text-slate-400">Liquidaciones / SL</span>
-                    <span id="statStopLosses" class="text-base font-bold text-red-500 mt-1">0</span>
-                    <span class="text-[11px] text-slate-500 mt-0.5">Quiebres</span>
-                </div>
-            </div>
-
-            <!-- Charts Grid -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <!-- Equity Curve Chart -->
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-5 shadow-xl flex flex-col">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2 font-mono">
-                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
-                            Evolución del Capital (Equity Curve) 10x
-                        </h3>
-                        <span class="text-xs text-slate-400 font-mono">USDT</span>
-                    </div>
-                    <div class="relative h-[270px] w-full">
-                        <canvas id="equityChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Price Chart with DCA Average Line -->
-                <div class="bg-cardbg border border-bordercolor rounded-xl p-5 shadow-xl flex flex-col">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2 font-mono">
-                            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            Precio BTC/USDT & Ciclos DCA
-                        </h3>
-                        <span class="text-xs text-slate-400 font-mono">2024 - 2026</span>
-                    </div>
-                    <div class="relative h-[270px] w-full">
-                        <canvas id="priceChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cycle History Table -->
-            <div class="bg-cardbg border border-bordercolor rounded-xl p-5 shadow-xl flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2 font-mono">
-                        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                        Registro Histórico de Ciclos DCA
-                    </h3>
-                    <span id="cycleCountBadge" class="text-xs font-mono bg-bordercolor px-2.5 py-1 rounded text-slate-300">0 ciclos</span>
-                </div>
-                <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
-                    <table class="w-full text-left border-collapse text-xs font-mono">
-                        <thead class="bg-darkbg text-slate-400 sticky top-0 border-b border-bordercolor">
-                            <tr>
-                                <th class="p-3">Ciclo #</th>
-                                <th class="p-3">Inicio</th>
-                                <th class="p-3">Cierre</th>
-                                <th class="p-3">Órdenes Llenadas</th>
-                                <th class="p-3">Precio Prom. DCA</th>
-                                <th class="p-3">Precio Cierre</th>
-                                <th class="p-3">PnL (USDT)</th>
-                                <th class="p-3">Capital Final</th>
-                                <th class="p-3">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cycleTableBody" class="divide-y divide-bordercolor text-slate-300">
-                            <!-- Injected by JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
+          </div>
         </div>
-    </main>
+      </fieldset>
+      <fieldset>
+        <legend>Datos de precio</legend>
+        <div class="seg" role="radiogroup" aria-label="Fuente de datos" style="margin-bottom:10px">
+          <label><input type="radio" name="src" value="synth" checked><span>Simulados</span></label>
+          <label><input type="radio" name="src" value="csv"><span>Archivo CSV</span></label>
+        </div>
+        <div id="synthBox">
+          <div class="fields">
+            <label>Precio inicial (USDT)<input type="number" id="p0" value="150" min="0.01" step="any" inputmode="decimal"></label>
+            <label>Días<input type="number" id="days" value="14" min="1" max="60" step="1" inputmode="numeric"></label>
+            <label>Volatilidad anual (%)<input type="number" id="vol" value="70" min="1" step="any" inputmode="decimal"></label>
+            <label>Deriva anual (%)<input type="number" id="drift" value="0" step="any" inputmode="decimal"></label>
+            <label>Semilla<input type="number" id="seed" value="7" step="1" inputmode="numeric"></label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button class="primary" id="btnGen" type="button">Generar y simular</button>
+            <button id="btnSeed" type="button">Otra semilla</button>
+          </div>
+        </div>
+        <div id="csvBox" hidden>
+          <label>Velas de Binance en CSV<input type="file" id="file" accept=".csv,text/csv,text/plain"></label>
+          <p class="hint">Columnas: tiempo, open, high, low, close. Sirve el formato de klines de Binance o un CSV con encabezado.</p>
+        </div>
+        <details>
+          <summary>Cómo bajar velas reales de SOL</summary>
+          <pre id="snippet"><code>import ccxt, csv, time
+ex = ccxt.binanceusdm()
+since = ex.parse8601("2026-09-01T00:00:00Z")
+rows = []
+while len(rows) &lt; 43200:          # ~30 días de 1m
+    batch = ex.fetch_ohlcv("SOL/USDT:USDT", "1m", since=since, limit=1500)
+    if not batch: break
+    rows += batch
+    since = batch[-1][0] + 60_000
+    time.sleep(0.2)
+with open("sol_1m.csv", "w", newline="") as f:
+    w = csv.writer(f)
+    w.writerow(["time", "open", "high", "low", "close", "volume"])
+    w.writerows(rows)</code></pre>
+          <div class="row" style="margin-top:8px"><button id="btnCopy" type="button">Copiar código</button><span class="hint" id="copyMsg" style="margin:0"></span></div>
+        </details>
+      </fieldset>
+    </aside>
 
-    <!-- FOOTER -->
-    <footer class="bg-cardbg border-t border-bordercolor py-4 text-center text-xs text-slate-500 font-mono">
-        BTC 10x Grid DCA Simulation Terminal &copy; 2026. Basado en la volatilidad real de los últimos dos años (2024-2026).
-    </footer>
+    <div class="stack">
+      <section class="panel" aria-live="polite">
+        <p class="verdict" id="verdict"></p>
+        <p class="datainfo" id="dataInfo"></p>
+        <details>
+          <summary>Supuestos de la simulación</summary>
+          <ul>
+            <li>Una orden limit se llena cuando el mínimo de la vela llega a su precio.</li>
+            <li>Modo pesimista: en cada vela el mínimo ocurre antes que el máximo. Modo optimista: el máximo ocurre primero.</li>
+            <li>Liquidación aproximada: promedio × (1 − 1/apalancamiento + mantenimiento). Al liquidarse se pierde el margen usado en el ciclo, más las comisiones.</li>
+            <li>El primer long entra a mercado (taker) al cierre de la vela. Las demás entradas y las salidas son limit (maker).</li>
+            <li>El ciclo siguiente arranca al cierre de la vela en que terminó el anterior. No hay slippage ni funding.</li>
+            <li>La simulación se detiene si el saldo queda por debajo del margen de un ciclo.</li>
+          </ul>
+        </details>
+      </section>
 
-    <!-- JS ENGINE -->
-    <script>
-        let equityChartInstance = null;
-        let priceChartInstance = null;
-        let globalCycleLog = [];
+      <section class="panel">
+        <h2>La escalera</h2>
+        <div class="tablewrap short"><table id="ladder"></table></div>
+        <p class="sumline" id="ladderSum"></p>
+      </section>
 
-        // Generate high-fidelity realistic BTC daily price series for 2024 - 2026 (730 days)
-        function generateHistoricalBTCData() {
-            const data = [];
-            let price = 42200; // Jan 1, 2024
-            const startDate = new Date('2024-01-01');
+      <section class="panel">
+        <div class="kpis" id="kpis"></div>
+      </section>
 
-            for (let i = 0; i < 730; i++) {
-                const currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + i);
+      <section class="panel">
+        <h2>Precio y salidas de cada ciclo</h2>
+        <div class="legend" id="legend"></div>
+        <div class="chart" id="chartPrice"></div>
+      </section>
 
-                // Simulate realistic macro crypto trend segments 2024-2026
-                let dailyTrend = 0.0008; 
-                if (i > 60 && i < 150) dailyTrend = 0.0022;  // Spring 2024 rally to ATH
-                else if (i >= 150 && i < 280) dailyTrend = -0.0006; // Summer/Autumn consolidation
-                else if (i >= 280 && i < 420) dailyTrend = 0.0028;  // Late 2024 - Early 2025 bull run
-                else if (i >= 420 && i < 580) dailyTrend = -0.0012; // 2025 major pullback
-                else if (i >= 580) dailyTrend = 0.0015;             // 2026 recovery
+      <section class="panel">
+        <h2>Capital a precio de mercado</h2>
+        <div class="chart" id="chartEq"></div>
+        <p class="hint">Incluye la ganancia o pérdida no realizada de la posición abierta y todas las comisiones.</p>
+      </section>
 
-                // Daily volatility noise up to 4.5%
-                const volatility = (Math.random() - 0.49) * 0.045;
-                price = price * (1 + dailyTrend + volatility);
-                if (price < 18000) price = 18000;
+      <section class="panel">
+        <h2>Muchos escenarios</h2>
+        <p class="hint" style="margin:0 0 10px">Corre la misma estrategia sobre precios simulados con distintas semillas, usando la volatilidad, la deriva y los días del panel. Sirve para ver cuántas veces termina en liquidación, algo que un solo recorrido no muestra.</p>
+        <div class="row" style="margin-bottom:12px">
+          <label style="flex-direction:row;align-items:center;gap:8px">Escenarios<input type="number" id="mcn" value="40" min="5" max="200" step="1" style="width:84px"></label>
+          <button class="primary" id="btnMC" type="button">Correr escenarios</button>
+          <span class="hint" id="mcProg" style="margin:0"></span>
+        </div>
+        <div id="mcOut"></div>
+      </section>
 
-                const high = price * (1 + Math.random() * 0.022);
-                const low = price * (1 - Math.random() * 0.022);
+      <section class="panel">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px">
+          <h2 style="margin:0">Ciclos</h2>
+          <label style="flex-direction:row;align-items:center;gap:8px">Orden
+            <select id="cycSort" style="width:auto"><option value="time">Cronológico</option><option value="worst">Peor resultado primero</option></select>
+          </label>
+        </div>
+        <div class="tablewrap"><table id="cycles"></table></div>
+        <p class="hint" id="cycNote"></p>
+      </section>
+    </div>
+  </div>
+</div>
 
-                data.push({
-                    date: currentDate.toISOString().split('T')[0],
-                    price: parseFloat(price.toFixed(2)),
-                    high: parseFloat(high.toFixed(2)),
-                    low: parseFloat(low.toFixed(2))
-                });
-            }
-            return data;
+<script id="engine">
+/* ---------- Motor: sin DOM, se puede probar aparte ---------- */
+const r2 = x => Math.round(x * 100) / 100;
+const fl2 = x => Math.floor(x * 100 + 1e-9) / 100;
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Velas de 1 minuto: caminata aleatoria con volatilidad variable y saltos ocasionales. */
+function genSynthetic(G) {
+  const N = Math.round(G.days * 1440);
+  const rnd = mulberry32(G.seed);
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
+  const sigma = (G.vol / 100) / Math.sqrt(525600);
+  const mu = (G.drift / 100) / 525600;
+  const sub = 6;
+  const t = new Float64Array(N), o = new Float64Array(N), h = new Float64Array(N), l = new Float64Array(N), c = new Float64Array(N);
+  const t0 = Date.UTC(2026, 8, 1);
+  let p = G.p0, z = 0;
+  for (let i = 0; i < N; i++) {
+    z = 0.995 * z + 0.04 * gauss();
+    const s = sigma * Math.exp(z) / Math.sqrt(sub);
+    let hi = p, lo = p;
+    o[i] = p;
+    for (let k = 0; k < sub; k++) {
+      p *= Math.exp(mu / sub + s * gauss() - 0.5 * s * s);
+      if (p > hi) hi = p; if (p < lo) lo = p;
+    }
+    if (rnd() < 0.0003) { p *= 1 + 0.004 * gauss(); if (p > hi) hi = p; if (p < lo) lo = p; }
+    t[i] = t0 + i * 60000; h[i] = hi; l[i] = lo; c[i] = p;
+  }
+  return { t, o, h, l, c, N };
+}
+
+function buildLadder(p0, P) {
+  const w = Array.from({ length: P.n }, (_, i) => Math.pow(P.growth, i));
+  const ws = w.reduce((a, b) => a + b, 0);
+  return w.map((wi, i) => {
+    const frac = P.n > 1 ? i / (P.n - 1) : 0;
+    const price = r2(p0 * (1 - P.range / 100 * frac));
+    const amt = fl2((P.margin * wi / ws) * P.lev / price);
+    return { price, amt };
+  });
+}
+
+function simulate(D, P) {
+  const N = D.c.length, h = D.h, l = D.l, c = D.c;
+  const eq = new Float64Array(N);
+  const cycles = [], events = [];
+  const mk = P.maker / 100, tk = P.taker / 100, mm = P.mmr / 100;
+  const liqOf = avg => avg * (1 - 1 / P.lev + mm);
+  let realized = P.capital, halted = null, cy = null;
+  let peak = P.capital, maxDD = 0, maxDDpct = 0, minCushion = Infinity;
+
+  const start = idx => {
+    const p0 = c[idx], lv = buildLadder(p0, P), a0 = lv[0].amt;
+    cy = { start: idx, p0, lv, filled: lv.map((_, k) => k === 0), nf: 1, qty: a0, cost: lv[0].price * a0, fees: lv[0].price * a0 * tk, minLow: p0, deep: false };
+  };
+  const finish = (j, type, price) => {
+    const avg = cy.cost / cy.qty;
+    let pnl;
+    if (type === 'liq') pnl = -(cy.cost / P.lev) - cy.fees;
+    else pnl = (price - avg) * cy.qty - cy.fees - price * cy.qty * (type === 'stop' ? tk : mk);
+    realized += pnl;
+    cycles.push({ n: cycles.length + 1, start: cy.start, end: j, nf: cy.nf, nl: cy.lv.length, avg, type, price, pnl, dur: j - cy.start, minLow: cy.minLow, p0: cy.p0 });
+    events.push({ i: j, type, price, pnl });
+    cy = null;
+  };
+
+  start(0);
+  eq[0] = realized - cy.fees;
+
+  for (let j = 1; j < N; j++) {
+    if (halted) { eq[j] = realized; continue; }
+    const hi = h[j], lo = l[j];
+
+    const tryExit = () => {
+      const avg = cy.cost / cy.qty;
+      const tp = r2(avg * (1 + P.tpRoe / P.lev / 100));
+      let price = tp, type = 'tp';
+      if (cy.deep) { const be = r2(avg * (1 + P.be / 100)); if (be <= tp) { price = be; type = 'be'; } }
+      if (hi >= price) { finish(j, type, price); return true; }
+      return false;
+    };
+    const doFills = () => {
+      for (let k = 1; k < cy.lv.length; k++) {
+        if (!cy.filled[k] && lo <= cy.lv[k].price) {
+          const L = cy.lv[k];
+          cy.filled[k] = true; cy.nf++; cy.qty += L.amt; cy.cost += L.price * L.amt; cy.fees += L.price * L.amt * mk;
         }
+      }
+      const n = cy.lv.length;
+      cy.deep = cy.filled[n - 1] && cy.filled[n - 2];
+      if (lo < cy.minLow) cy.minLow = lo;
+    };
+    const risk = () => {
+      const avg = cy.cost / cy.qty, liq = liqOf(avg);
+      const stopP = P.stop == null ? null : cy.lv[cy.lv.length - 1].price * (1 - P.stop / 100);
+      const hitLiq = lo <= liq, hitStop = stopP != null && lo <= stopP;
+      if (hitLiq && (!hitStop || liq >= stopP)) { minCushion = 0; finish(j, 'liq', liq); return true; }
+      if (hitStop) { finish(j, 'stop', stopP); return true; }
+      const cush = (lo / liq - 1) * 100;
+      if (cush < minCushion) minCushion = cush;
+      return false;
+    };
 
-        // Render visual preview bar chart of the 50 order volume weights
-        function updateVolumePreview() {
-            const numOrders = 50;
-            const weightScale = parseFloat(document.getElementById('paramWeightScale').value) || 1.05;
-            const container = document.getElementById('gridVolumePreview');
-            container.innerHTML = '';
+    let done;
+    if (P.mode === 'pess') { doFills(); done = risk() || tryExit(); }
+    else { done = tryExit(); if (!done) { doFills(); done = risk(); } }
 
-            // Compute relative weights
-            let weights = [];
-            let maxW = 0;
-            for (let i = 0; i < numOrders; i++) {
-                const w = Math.pow(weightScale, i);
-                weights.push(w);
-                if (w > maxW) maxW = w;
-            }
+    if (done) {
+      if (realized < P.margin) { halted = { i: j }; eq[j] = realized; continue; }
+      start(j);
+    }
+    const avg = cy.cost / cy.qty;
+    eq[j] = realized + (c[j] - avg) * cy.qty - cy.fees;
+    if (eq[j] > peak) peak = eq[j];
+    const dd = peak - eq[j];
+    if (dd > maxDD) { maxDD = dd; }
+    if (peak > 0 && dd / peak * 100 > maxDDpct) maxDDpct = dd / peak * 100;
+  }
 
-            // Render bars (downsampled to 25 bars for display)
-            for (let i = 0; i < numOrders; i += 2) {
-                const heightPct = Math.max(10, (weights[i] / maxW) * 100);
-                const bar = document.createElement('div');
-                bar.className = 'w-full bg-cyan-500/60 hover:bg-cyan-400 rounded-t transition-all';
-                bar.style.height = `${heightPct}%`;
-                bar.title = `Orden #${i + 1}: Factor x${weights[i].toFixed(2)}`;
-                container.appendChild(bar);
-            }
-        }
+  const st = { tp: 0, be: 0, stop: 0, liq: 0, wins: 0, lossLiq: 0, maxDepth: cy ? cy.nf : 0, durSum: 0 };
+  cycles.forEach(x => {
+    st[x.type]++; if (x.pnl > 0) st.wins++; if (x.type === 'liq') st.lossLiq += -x.pnl;
+    if (x.nf > st.maxDepth) st.maxDepth = x.nf; st.durSum += x.dur;
+  });
+  const open = cy ? { nf: cy.nf, qty: cy.qty, avg: cy.cost / cy.qty, unreal: (c[N - 1] - cy.cost / cy.qty) * cy.qty } : null;
+  const net = eq[N - 1] - P.capital;
+  return { eq, cycles, events, halted, open, net, st, maxDD, maxDDpct, minCushion: Number.isFinite(minCushion) ? minCushion : null };
+}
+</script>
 
-        // Main Backtest Engine
-        function runBacktest() {
-            const initialCapital = parseFloat(document.getElementById('paramCapital').value) || 10000;
-            const numOrders = 50;
-            const dropCoveragePct = parseFloat(document.getElementById('paramDropCoverage').value) / 100;
-            const weightScale = parseFloat(document.getElementById('paramWeightScale').value) || 1.05;
-            const takeProfitPct = parseFloat(document.getElementById('paramTakeProfit').value) / 100;
-            const stopLossPct = parseFloat(document.getElementById('paramStopLoss').value) / 100;
-            const feeRate = (parseFloat(document.getElementById('paramFee').value) || 0.04) / 100;
-            const leverage = 10; // Fixed 10x
+<script>
+/* ---------- Interfaz ---------- */
+(() => {
+  const $ = id => document.getElementById(id);
+  const fmt = (x, d = 2) => Number.isFinite(x) ? x.toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d }) : '–';
+  const sgn = (x, d = 2) => (x > 0.0000001 ? '+' : x < -0.0000001 ? '−' : '') + fmt(Math.abs(x), d);
+  const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+  const LABEL = { tp: 'Take profit', be: 'Breakeven', stop: 'Stop', liq: 'Liquidación' };
+  const S = { D: null, R: null, P: null, label: '', cyc: [], dtMin: 1 };
 
-            const btcData = generateHistoricalBTCData();
+  function fmtT(i) {
+    const t = S.D.t[Math.min(S.D.N - 1, i)];
+    return new Date(t).toLocaleString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+  function fmtDur(min) {
+    if (min < 60) return Math.max(1, Math.round(min)) + ' min';
+    if (min < 1440) return fmt(min / 60, 1) + ' h';
+    return fmt(min / 1440, 1) + ' d';
+  }
 
-            let capital = initialCapital;
-            let peakCapital = initialCapital;
-            let maxDrawdown = 0;
+  /* ----- parámetros ----- */
+  function readParams() {
+    const g = id => parseFloat($(id).value);
+    const stopRaw = $('stop').value.trim();
+    const P = {
+      capital: g('capital'), margin: g('margin'), lev: g('lev'), n: Math.round(g('n')), range: g('range'), growth: g('growth'),
+      tpRoe: g('tproe'), be: g('befee'), maker: g('maker'), taker: g('taker'), mmr: g('mmr'),
+      stop: stopRaw === '' ? null : parseFloat(stopRaw),
+      mode: document.querySelector('input[name=mode]:checked').value
+    };
+    const e = [];
+    if (!(P.capital > 0)) e.push('El capital tiene que ser mayor que 0.');
+    if (!(P.margin > 0)) e.push('El margen por ciclo tiene que ser mayor que 0.');
+    if (P.margin > P.capital) e.push('El margen por ciclo no puede superar el capital.');
+    if (!(P.lev >= 1)) e.push('El apalancamiento tiene que ser al menos 1.');
+    if (!(P.n >= 2 && P.n <= 30)) e.push('La cantidad de órdenes va de 2 a 30.');
+    if (!(P.range > 0 && P.range < 50)) e.push('El rango tiene que estar entre 0 y 50%.');
+    if (!(P.growth >= 1)) e.push('El crecimiento por orden tiene que ser 1 o más.');
+    if (!(P.tpRoe > 0)) e.push('El TP por ROE tiene que ser mayor que 0.');
+    if (!(P.be >= 0) || !(P.maker >= 0) || !(P.taker >= 0) || !(P.mmr >= 0)) e.push('Colchón, comisiones y mantenimiento no pueden ser negativos.');
+    if (P.stop != null && !(P.stop >= 0)) e.push('El stop tiene que ser 0 o más.');
+    P.err = e;
+    return P;
+  }
+  function readGen() {
+    const g = id => parseFloat($(id).value);
+    return { p0: g('p0'), days: Math.round(g('days')), vol: g('vol'), drift: g('drift'), seed: Math.round(g('seed')) };
+  }
+  function genOK(G) { return G.p0 > 0 && G.days >= 1 && G.days <= 60 && G.vol > 0 && Number.isFinite(G.drift) && Number.isFinite(G.seed); }
 
-            let cycleCount = 0;
-            let cycleWins = 0;
-            let cycleLosses = 0;
-            let totalExecOrders = 0;
-            let grossProfit = 0;
-            let grossLoss = 0;
+  /* ----- escalera ----- */
+  function renderLadder(P, p0) {
+    const lv = buildLadder(p0, P), mm = P.mmr / 100;
+    const maxAmt = Math.max(...lv.map(x => x.amt), 0.01);
+    let q = 0, cost = 0, rows = '';
+    lv.forEach((L, k) => {
+      q += L.amt; cost += L.price * L.amt;
+      const avg = cost / q, liq = avg * (1 - 1 / P.lev + mm), cush = (1 - liq / L.price) * 100;
+      const tight = cush < 1.5, low = L.price * L.amt < 5;
+      rows += `<tr><td>#${k + 1}${k === 0 ? ' · mercado' : ''}</td><td>${fmt(L.price)}</td><td>${k === 0 ? '–' : fmt((L.price / p0 - 1) * 100, 2) + '%'}</td>` +
+        `<td class="bar" style="--w:${(L.amt / maxAmt * 100).toFixed(0)}%">${fmt(L.amt, 2)}</td><td>${fmt(L.price * L.amt, 1)}${low ? ' <span class="tight" title="Binance exige al menos 5 USDT de nocional por orden">⚠ mín.</span>' : ''}</td>` +
+        `<td>${fmt(avg)}</td><td>${fmt(liq)}</td><td class="${tight ? 'tight' : ''}">${tight ? '↓ ' : ''}${fmt(cush, 1)}%</td></tr>`;
+    });
+    $('ladder').innerHTML = `<thead><tr><th>Orden</th><th>Precio</th><th>Distancia</th><th>SOL</th><th>Nocional USDT</th><th>Promedio acum.</th><th>Liq. acum.</th><th>Liq. bajo el nivel</th></tr></thead><tbody>${rows}</tbody>`;
+    const avg = cost / q, tp = r2(avg * (1 + P.tpRoe / P.lev / 100)), be = r2(avg * (1 + P.be / 100)), liq = avg * (1 - 1 / P.lev + mm);
+    const last = lv[lv.length - 1].price;
+    $('ladderSum').innerHTML = `Con todo lleno: promedio <span>${fmt(avg)}</span>, take profit <span>${fmt(tp)}</span> (+${fmt(P.tpRoe / P.lev, 3)}% de precio), breakeven <span>${fmt(be)}</span>, liquidación <span>${fmt(liq)}</span>, a <span>${fmt((1 - liq / last) * 100, 1)}%</span> de la última orden.`;
+  }
 
-            let equityCurve = [initialCapital];
-            let dates = [btcData[0].date];
-            let cyclesLog = [];
+  /* ----- gráficos ----- */
+  function niceTicks(a, b, n) {
+    const span = (b - a) || 1, s0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(s0))), er = s0 / mag;
+    const step = (er < 1.5 ? 1 : er < 3 ? 2 : er < 7 ? 5 : 10) * mag;
+    const t0 = Math.floor(a / step) * step, t1 = Math.ceil(b / step) * step, ticks = [];
+    for (let v = t0; v <= t1 + step / 2; v += step) ticks.push(v);
+    return { ticks, t0, t1, step };
+  }
+  const decs = step => step >= 1 ? 0 : clamp(Math.ceil(-Math.log10(step)), 0, 3);
 
-            // Active Cycle State
-            let inCycle = false;
-            let cycleStartDate = null;
-            let gridOrders = []; // [{ targetPrice, btcQty, usdtCost, executed }]
-            let filledOrdersCount = 0;
-            let totalBtcPosition = 0;
-            let totalUsdtInvested = 0;
-            let averageDcaPrice = 0;
+  function markerSvg(type, x, y) {
+    x = +x; y = +y;
+    if (type === 'tp') return `<circle class="m-tp" cx="${x}" cy="${y}" r="2.6"/>`;
+    if (type === 'be') return `<path class="m-be" d="M${x} ${y - 5}l5 5l-5 5l-5 -5z"/>`;
+    if (type === 'stop') return `<path class="m-stop" d="M${x} ${y - 5}l5 9h-10z"/>`;
+    return `<path class="m-liq" d="M${x - 4} ${y - 4}l8 8M${x + 4} ${y - 4}l-8 8"/>`;
+  }
+  function legendHtml() {
+    const it = (t, l) => `<i><svg viewBox="-7 -7 14 14">${markerSvg(t, 0, 0)}</svg>${l}</i>`;
+    return it('tp', 'Take profit') + it('be', 'Breakeven (últimas 2 órdenes)') + it('stop', 'Stop') + it('liq', 'Liquidación');
+  }
 
-            // Helper to generate a new 50-order grid
-            function createGrid(currentPrice, currentCapital) {
-                const stepDrop = dropCoveragePct / (numOrders - 1);
-                
-                // Calculate weight distribution for capital allocation
-                let totalWeight = 0;
-                let weights = [];
-                for (let k = 0; k < numOrders; k++) {
-                    const w = Math.pow(weightScale, k);
-                    weights.push(w);
-                    totalWeight += w;
-                }
+  const charts = {};
+  function drawChart(host, cfg) {
+    host.innerHTML = '';
+    const W = Math.max(280, host.clientWidth || 600), H = cfg.height;
+    const m = { l: 56, r: 12, t: 10, b: 24 }, pw = W - m.l - m.r, ph = H - m.t - m.b, M = cfg.M;
+    const lo = cfg.lo || cfg.line, hi = cfg.hi || cfg.line;
+    let a = Infinity, b = -Infinity;
+    for (let k = 0; k < M; k++) { if (lo[k] < a) a = lo[k]; if (hi[k] > b) b = hi[k]; }
+    if (cfg.base != null) { a = Math.min(a, cfg.base); b = Math.max(b, cfg.base); }
+    const pad = (b - a) * 0.04 || 1; a -= pad; b += pad;
+    const nt = niceTicks(a, b, Math.max(3, Math.round(ph / 55)));
+    const X = k => m.l + (M > 1 ? k / (M - 1) : 0.5) * pw;
+    const Y = v => m.t + ph - (v - nt.t0) / (nt.t1 - nt.t0) * ph;
+    const d = decs(nt.step);
+    let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${cfg.aria}">`;
+    nt.ticks.forEach(v => { const y = Y(v).toFixed(1); s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}"/><text class="tick" x="${m.l - 8}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${fmt(v, d)}</text>`; });
+    for (let j = 0; j < 5; j++) {
+      const k = Math.round(j * (M - 1) / 4);
+      s += `<text class="tick" x="${X(k).toFixed(1)}" y="${H - 6}" text-anchor="${j === 0 ? 'start' : j === 4 ? 'end' : 'middle'}">${cfg.xLabel(k)}</text>`;
+    }
+    if (cfg.hi) {
+      let up = '', dn = '';
+      for (let k = 0; k < M; k++) { up += `${X(k).toFixed(1)},${Y(cfg.hi[k]).toFixed(1)} `; }
+      for (let k = M - 1; k >= 0; k--) { dn += `${X(k).toFixed(1)},${Y(cfg.lo[k]).toFixed(1)} `; }
+      s += `<polygon class="pb" points="${up}${dn}"/>`;
+    }
+    let pts = '';
+    for (let k = 0; k < M; k++) pts += (k ? 'L' : 'M') + X(k).toFixed(1) + ' ' + Y(cfg.line[k]).toFixed(1);
+    s += `<path class="${cfg.lineClass}" d="${pts}"/>`;
+    if (cfg.base != null) s += `<line class="basel" x1="${m.l}" x2="${W - m.r}" y1="${Y(cfg.base).toFixed(1)}" y2="${Y(cfg.base).toFixed(1)}"/>`;
+    const order = ['tp', 'be', 'stop', 'liq'];
+    let shown = 0;
+    order.forEach(t => cfg.events.forEach(ev => {
+      if (ev.type !== t) return;
+      if (t === 'tp' && ++shown > 1500) return;
+      s += markerSvg(t, X(ev.b).toFixed(1), Y(cfg.markY(ev)).toFixed(1));
+    }));
+    s += `<line class="cross" id="cx" y1="${m.t}" y2="${m.t + ph}" hidden/><circle class="dotp" id="cd" r="4" hidden/>`;
+    s += `<rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent" style="touch-action:pan-y;cursor:crosshair" id="ov"/></svg>`;
+    host.innerHTML = s + '<div class="tip" hidden></div>';
+    const svg = host.querySelector('svg'), tip = host.querySelector('.tip'), cx = svg.querySelector('#cx'), cd = svg.querySelector('#cd'), ov = svg.querySelector('#ov');
+    const move = e => {
+      const r = svg.getBoundingClientRect();
+      const k = clamp(Math.round((e.clientX - r.left - m.l) / pw * (M - 1)), 0, M - 1);
+      const x = X(k), y = Y(cfg.line[k]);
+      cx.setAttribute('x1', x); cx.setAttribute('x2', x); cx.removeAttribute('hidden');
+      cd.setAttribute('cx', x); cd.setAttribute('cy', y); cd.removeAttribute('hidden');
+      tip.innerHTML = cfg.tip(k); tip.removeAttribute('hidden');
+      const tw = tip.offsetWidth;
+      tip.style.left = (x + 14 + tw > W ? x - 14 - tw : x + 14) + 'px';
+      tip.style.top = (m.t + 4) + 'px';
+    };
+    const leave = () => { cx.setAttribute('hidden', ''); cd.setAttribute('hidden', ''); tip.setAttribute('hidden', ''); };
+    ov.addEventListener('pointermove', move); ov.addEventListener('pointerdown', move); ov.addEventListener('pointerleave', leave);
+  }
 
-                // Available margin considering 10x leverage allocation
-                const totalMarginToDeploy = currentCapital;
-                const totalPositionPower = totalMarginToDeploy * leverage;
+  function renderCharts() {
+    const D = S.D, R = S.R, N = D.N, P = S.P;
+    const B = Math.max(1, Math.ceil(N / 700)), M = Math.ceil(N / B);
+    const pl = new Float64Array(M), plo = new Float64Array(M), phi = new Float64Array(M), el = new Float64Array(M);
+    for (let k = 0; k < M; k++) {
+      const s = k * B, e = Math.min(N, s + B);
+      let lo = Infinity, hi = -Infinity;
+      for (let i = s; i < e; i++) { if (D.l[i] < lo) lo = D.l[i]; if (D.h[i] > hi) hi = D.h[i]; }
+      pl[k] = D.c[e - 1]; plo[k] = lo; phi[k] = hi; el[k] = R.eq[e - 1];
+    }
+    const evs = R.events.map(e => ({ ...e, b: Math.min(M - 1, Math.floor(e.i / B)) }));
+    const byB = {}; evs.forEach(e => (byB[e.b] = byB[e.b] || []).push(e));
+    const evTxt = k => (byB[k] || []).slice(0, 5).map(e => `<br>${LABEL[e.type]} ${sgn(e.pnl)} USDT`).join('') + ((byB[k] || []).length > 5 ? `<br>+${byB[k].length - 5} más` : '');
+    $('legend').innerHTML = legendHtml();
+    charts.price = { host: $('chartPrice'), cfg: { height: 250, M, line: pl, lo: plo, hi: phi, lineClass: 'pl', events: evs, markY: e => e.price, xLabel: k => fmtT(k * B), aria: 'Precio de SOL con las salidas de cada ciclo',
+      tip: k => `${fmtT(k * B)}<br>Cierre ${fmt(pl[k])}<br>Mín ${fmt(plo[k])} · Máx ${fmt(phi[k])}${evTxt(k)}` } };
+    charts.eq = { host: $('chartEq'), cfg: { height: 210, M, line: el, lineClass: 'el', base: P.capital, events: evs.filter(e => e.type !== 'tp'), markY: e => el[e.b], xLabel: k => fmtT(k * B), aria: 'Capital a precio de mercado a lo largo del tiempo',
+      tip: k => `${fmtT(k * B)}<br>Capital ${fmt(el[k])} USDT<br>${sgn(el[k] - P.capital)} vs inicio${evTxt(k)}` } };
+    Object.values(charts).forEach(c => c.host.clientWidth && drawChart(c.host, c.cfg));
+  }
 
-                const newOrders = [];
-                for (let k = 0; k < numOrders; k++) {
-                    const targetPrice = currentPrice * (1 - (k * stepDrop));
-                    const usdtAllocated = totalPositionPower * (weights[k] / totalWeight);
-                    const btcQty = usdtAllocated / targetPrice;
+  /* ----- resultados ----- */
+  function renderResults() {
+    const R = S.R, P = S.P, st = R.st, D = S.D;
+    const pct = R.net / P.capital * 100, n = R.cycles.length;
+    const days = D.N * S.dtMin / 1440;
+    let v = `En ${fmt(days, 1)} días de datos hubo ${n} ciclos cerrados. `;
+    v += st.liq ? `${st.liq} terminaron en liquidación y se llevaron ${fmt(st.lossLiq)} USDT de margen. ` : 'Ninguno terminó en liquidación. ';
+    v += `Resultado neto: ${sgn(R.net)} USDT (${sgn(pct, 1)}% del capital).`;
+    if (R.open) v += ` Quedó una posición abierta de ${fmt(R.open.qty, 2)} SOL con ${R.open.nf} de ${P.n} órdenes llenas.`;
+    if (R.halted) v += ` La cuenta quedó por debajo del margen de un ciclo y la simulación se detuvo el ${fmtT(R.halted.i)}.`;
+    $('verdict').textContent = v;
+    $('dataInfo').textContent = `${S.label} · ${D.N.toLocaleString('es-AR')} velas de ${fmt(S.dtMin, 0)} min · SOL ${fmt(D.c[0])} → ${fmt(D.c[D.N - 1])}`;
+    const k = (t, val, sub, cls) => `<div class="kpi"><b>${t}</b><div class="v ${cls || ''}">${val}</div><small>${sub}</small></div>`;
+    const cush = R.minCushion;
+    $('kpis').innerHTML =
+      k('Resultado neto', `${sgn(R.net)}`, `USDT · ${sgn(pct, 1)}% del capital`, R.net > 0 ? 'pos' : R.net < 0 ? 'neg' : '') +
+      k('Ciclos cerrados', n, `TP ${st.tp} · BE ${st.be} · Stop ${st.stop} · Liq. ${st.liq}`) +
+      k('Liquidaciones', st.liq, st.liq ? `−${fmt(st.lossLiq)} USDT de margen` : 'ninguna', st.liq ? 'neg' : '') +
+      k('Caída máxima', `${fmt(R.maxDDpct, 1)}%`, `${fmt(R.maxDD)} USDT desde el pico`) +
+      k('Más cerca de liquidarse', cush == null ? '–' : `${fmt(cush, 1)}%`, 'precio sobre la liquidación') +
+      k('Órdenes llenas, máximo', `${st.maxDepth} / ${P.n}`, `aciertos ${n ? fmt(st.wins / n * 100, 0) : 0}% de los ciclos`);
+    S.cyc = R.cycles;
+    renderCycles();
+  }
+  function renderCycles() {
+    const mode = $('cycSort').value;
+    let list = S.cyc.slice();
+    if (mode === 'worst') list.sort((a, b) => a.pnl - b.pnl);
+    const total = list.length; list = list.slice(0, 400);
+    let rows = '';
+    list.forEach(c => {
+      rows += `<tr><td>${c.n}</td><td>${fmtT(c.start)}</td><td>${c.nf}/${c.nl}</td><td>${fmt(c.avg)}</td><td><span class="pill ${c.type}">${LABEL[c.type]}</span></td><td>${fmt(c.price)}</td><td class="${c.pnl > 0 ? 'pos' : 'neg'}">${sgn(c.pnl)}</td><td>${fmtDur(c.dur * S.dtMin)}</td></tr>`;
+    });
+    $('cycles').innerHTML = `<thead><tr><th>#</th><th>Inicio</th><th>Llenas</th><th>Promedio</th><th>Salida</th><th>Precio</th><th>PnL USDT</th><th>Duración</th></tr></thead><tbody>${rows || '<tr><td colspan="8">Sin ciclos cerrados.</td></tr>'}</tbody>`;
+    $('cycNote').textContent = total > 400 ? `Mostrando 400 de ${total} ciclos.` : '';
+  }
 
-                    newOrders.push({
-                        id: k + 1,
-                        targetPrice: targetPrice,
-                        btcQty: btcQty,
-                        usdtCost: usdtAllocated / leverage, // Margin required
-                        executed: false
-                    });
-                }
-                return newOrders;
-            }
+  function recompute() {
+    const P = readParams();
+    $('errBox').textContent = P.err.join(' ');
+    if (P.err.length || !S.D) return;
+    S.P = P;
+    renderLadder(P, S.D.c[0]);
+    S.R = simulate(S.D, P);
+    renderResults();
+    renderCharts();
+  }
 
-            // Run daily simulation
-            for (let i = 0; i < btcData.length; i++) {
-                const day = btcData[i];
+  /* ----- datos ----- */
+  function setData(D, label) {
+    S.D = D; S.label = label;
+    S.dtMin = D.N > 1 ? Math.max(1 / 60, (D.t[D.N - 1] - D.t[0]) / (D.N - 1) / 60000) : 1;
+    recompute();
+  }
+  function useSynthetic() {
+    const G = readGen();
+    if (!genOK(G)) { $('errBox').textContent = 'Revisá los datos simulados: precio y volatilidad mayores que 0, entre 1 y 60 días.'; return; }
+    setData(genSynthetic(G), `Datos simulados, semilla ${G.seed}`);
+  }
 
-                // Start new cycle if none active
-                if (!inCycle && capital > 50) {
-                    inCycle = true;
-                    cycleStartDate = day.date;
-                    gridOrders = createGrid(day.price, capital);
-                    filledOrdersCount = 0;
-                    totalBtcPosition = 0;
-                    totalUsdtInvested = 0;
-                    averageDcaPrice = 0;
+  function parseCSV(text) {
+    const lines = text.split(/\r?\n/).filter(s => s.trim().length);
+    if (lines.length < 10) throw new Error('El archivo tiene muy pocas filas.');
+    const sep = lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',';
+    const first = lines[0].split(sep).map(s => s.trim().replace(/"/g, '').toLowerCase());
+    let ix = { t: 0, o: 1, h: 2, l: 3, c: 4 }, startRow = 0;
+    if (first.some(x => isNaN(parseFloat(x)))) {
+      startRow = 1;
+      const find = (...nm) => first.findIndex(x => nm.includes(x));
+      const m = { t: find('time', 'timestamp', 'open_time', 'open time', 'opentime', 'date', 'datetime'), o: find('open', 'o'), h: find('high', 'h'), l: find('low', 'l'), c: find('close', 'c') };
+      if (m.o < 0 || m.h < 0 || m.l < 0 || m.c < 0) throw new Error('No encontré las columnas open, high, low y close en el encabezado.');
+      ix = m;
+    }
+    const cap = Math.min(lines.length - startRow, 1500000);
+    const t = new Float64Array(cap), o = new Float64Array(cap), h = new Float64Array(cap), l = new Float64Array(cap), c = new Float64Array(cap);
+    let n = 0;
+    for (let i = 0; i < cap; i++) {
+      const p = lines[startRow + i].split(sep);
+      const oo = parseFloat(p[ix.o]), hh = parseFloat(p[ix.h]), ll = parseFloat(p[ix.l]), cc = parseFloat(p[ix.c]);
+      if (![oo, hh, ll, cc].every(Number.isFinite)) continue;
+      let tt = i * 60000;
+      if (ix.t >= 0) { const raw = (p[ix.t] || '').trim().replace(/"/g, ''); const num = Number(raw); tt = Number.isFinite(num) && raw !== '' ? (num < 1e11 ? num * 1000 : num) : Date.parse(raw); if (!Number.isFinite(tt)) tt = i * 60000; }
+      t[n] = tt; o[n] = oo; h[n] = hh; l[n] = ll; c[n] = cc; n++;
+    }
+    if (n < 10) throw new Error('No pude leer velas válidas en el archivo.');
+    return { t: t.slice(0, n), o: o.slice(0, n), h: h.slice(0, n), l: l.slice(0, n), c: c.slice(0, n), N: n };
+  }
 
-                    // Immediately trigger Order #1 at market price
-                    gridOrders[0].executed = true;
-                    filledOrdersCount = 1;
-                    totalBtcPosition += gridOrders[0].btcQty;
-                    totalUsdtInvested += gridOrders[0].btcQty * gridOrders[0].targetPrice;
-                    averageDcaPrice = totalUsdtInvested / totalBtcPosition;
-                }
+  /* ----- escenarios ----- */
+  async function runMC() {
+    const P = readParams(), G = readGen();
+    if (P.err.length || !genOK(G)) { $('errBox').textContent = P.err.join(' ') || 'Revisá los datos simulados.'; return; }
+    const count = clamp(parseInt($('mcn').value) || 40, 5, 200);
+    const btn = $('btnMC'); btn.disabled = true;
+    const out = [];
+    for (let s = 0; s < count; s++) {
+      const D = genSynthetic({ ...G, seed: G.seed + s });
+      const R = simulate(D, P);
+      out.push({ seed: G.seed + s, pct: R.net / P.capital * 100, net: R.net, liq: R.st.liq, dd: R.maxDDpct, halted: !!R.halted });
+      if (s % 2 === 1 || s === count - 1) { $('mcProg').textContent = `${s + 1} de ${count}`; await new Promise(r => setTimeout(r)); }
+    }
+    btn.disabled = false; $('mcProg').textContent = '';
+    renderMC(out, P);
+  }
+  let mcState = null;
+  function renderMC(out, P) {
+    mcState = { out, P };
+    const sorted = out.slice().sort((a, b) => a.pct - b.pct);
+    const withLiq = out.filter(x => x.liq > 0).length, broke = out.filter(x => x.halted).length;
+    const med = sorted[Math.floor(sorted.length / 2)].pct;
+    $('mcOut').innerHTML = `<p class="mc-sum"><b>${withLiq} de ${out.length}</b> escenarios (${fmt(withLiq / out.length * 100, 0)}%) tuvieron al menos una liquidación${broke ? `, y en ${broke} la cuenta se agotó` : ''}. Resultado mediano ${sgn(med, 1)}%, peor ${sgn(sorted[0].pct, 1)}%, mejor ${sgn(sorted[sorted.length - 1].pct, 1)}%.</p>
+      <div class="legend"><i><svg viewBox="0 0 12 12"><rect width="12" height="12" rx="2" style="fill:var(--accent)"/></svg>Sin liquidación</i><i><svg viewBox="0 0 12 12"><rect width="12" height="12" rx="2" style="fill:var(--bad)"/><path d="M0 12L12 0M-3 9L9 -3M3 15L15 3" style="stroke:var(--panel);stroke-width:2"/></svg>Con liquidación</i></div>
+      <div class="chart" id="mcChart"></div><p class="hint">Cada barra es un escenario, ordenados de peor a mejor. Resultado neto sobre el capital inicial.</p>`;
+    drawMC();
+  }
+  function drawMC() {
+    if (!mcState) return;
+    const host = $('mcChart'); if (!host) return;
+    const sorted = mcState.out.slice().sort((a, b) => a.pct - b.pct), cnt = sorted.length;
+    const W = Math.max(280, host.clientWidth || 600), H = 220, m = { l: 56, r: 12, t: 10, b: 22 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+    let a = Math.min(0, ...sorted.map(x => x.pct)), b = Math.max(0, ...sorted.map(x => x.pct));
+    const nt = niceTicks(a, b, 4), Y = v => m.t + ph - (v - nt.t0) / (nt.t1 - nt.t0) * ph, d = decs(nt.step);
+    const bw = pw / cnt;
+    let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Resultado neto de cada escenario, ordenados">
+      <defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--bad)"/><rect width="2" height="6" style="fill:var(--panel)"/></pattern></defs>`;
+    nt.ticks.forEach(v => { const y = Y(v).toFixed(1); s += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}"/><text class="tick" x="${m.l - 8}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${fmt(v, d)}%</text>`; });
+    sorted.forEach((x, i) => {
+      const y0 = Y(0), y1 = Y(x.pct), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
+      s += `<rect x="${(m.l + i * bw + 1).toFixed(1)}" y="${top.toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" style="fill:${x.liq > 0 ? 'url(#hatch)' : 'var(--accent)'}"/>`;
+    });
+    s += `<line class="basel" x1="${m.l}" x2="${W - m.r}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>`;
+    s += `<rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent" id="mov" style="touch-action:pan-y"/></svg><div class="tip" hidden></div>`;
+    host.innerHTML = s;
+    const tip = host.querySelector('.tip'), ov = host.querySelector('#mov'), svg = host.querySelector('svg');
+    const move = e => {
+      const r = svg.getBoundingClientRect(), i = clamp(Math.floor((e.clientX - r.left - m.l) / bw), 0, cnt - 1), x = sorted[i];
+      tip.innerHTML = `Semilla ${x.seed}<br>Resultado ${sgn(x.pct, 1)}% (${sgn(x.net)} USDT)<br>${x.liq} liquidaciones · caída ${fmt(x.dd, 1)}%${x.halted ? '<br>Cuenta agotada' : ''}`;
+      tip.removeAttribute('hidden');
+      const tw = tip.offsetWidth, px = m.l + (i + 0.5) * bw;
+      tip.style.left = (px + 14 + tw > W ? px - 14 - tw : px + 14) + 'px'; tip.style.top = (m.t + 4) + 'px';
+    };
+    ov.addEventListener('pointermove', move); ov.addEventListener('pointerdown', move); ov.addEventListener('pointerleave', () => tip.setAttribute('hidden', ''));
+  }
 
-                if (inCycle) {
-                    // Check execution of pending limit orders on today's LOW
-                    for (let k = 0; k < numOrders; k++) {
-                        if (!gridOrders[k].executed && day.low <= gridOrders[k].targetPrice) {
-                            gridOrders[k].executed = true;
-                            filledOrdersCount++;
-                            totalBtcPosition += gridOrders[k].btcQty;
-                            totalUsdtInvested += gridOrders[k].btcQty * gridOrders[k].targetPrice;
-                            averageDcaPrice = totalUsdtInvested / totalBtcPosition;
-                        }
-                    }
+  /* ----- eventos ----- */
+  let tmr;
+  const later = () => { clearTimeout(tmr); tmr = setTimeout(recompute, 160); };
+  ['capital', 'margin', 'lev', 'n', 'range', 'growth', 'tproe', 'befee', 'stop', 'maker', 'taker', 'mmr'].forEach(id => $(id).addEventListener('input', later));
+  document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', recompute));
+  document.querySelectorAll('input[name=src]').forEach(r => r.addEventListener('change', () => {
+    const csv = document.querySelector('input[name=src]:checked').value === 'csv';
+    $('synthBox').hidden = csv; $('csvBox').hidden = !csv;
+  }));
+  $('btnGen').addEventListener('click', useSynthetic);
+  $('btnSeed').addEventListener('click', () => { $('seed').value = Math.round(+$('seed').value || 0) + 1; useSynthetic(); });
+  $('btnMC').addEventListener('click', runMC);
+  $('cycSort').addEventListener('change', renderCycles);
+  $('file').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try {
+      const text = await f.text();
+      setData(parseCSV(text), `Archivo ${f.name}`);
+      $('errBox').textContent = '';
+    } catch (err) { $('errBox').textContent = 'No pude usar el archivo: ' + err.message; }
+  });
+  $('btnCopy').addEventListener('click', async () => {
+    const txt = $('snippet').innerText;
+    try { await navigator.clipboard.writeText(txt); $('copyMsg').textContent = 'Copiado'; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($('snippet')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('copyMsg').textContent = 'Seleccionado, copialo con Ctrl+C'; }
+  });
+  let rq;
+  new ResizeObserver(() => { cancelAnimationFrame(rq); rq = requestAnimationFrame(() => { Object.values(charts).forEach(c => c.host.clientWidth && drawChart(c.host, c.cfg)); drawMC(); }); }).observe(document.body);
 
-                    // Calculate current unrealized PnL based on today's HIGH / LOW
-                    const targetTpPrice = averageDcaPrice * (1 + takeProfitPct);
-                    const stopLossPrice = averageDcaPrice * (1 - stopLossPct);
-                    const liqPrice = averageDcaPrice * (1 - (0.90 / leverage)); // ~9% drop liquidation at 10x
+  useSynthetic();
+})();
+</script>
 
-                    let closeCycle = false;
-                    let closePrice = 0;
-                    let cycleStatus = '';
-
-                    // Check Take Profit trigger
-                    if (day.high >= targetTpPrice) {
-                        closeCycle = true;
-                        closePrice = targetTpPrice;
-                        cycleStatus = 'TAKE PROFIT';
-                    } 
-                    // Check Stop Loss or Liquidation trigger
-                    else if (day.low <= Math.max(stopLossPrice, liqPrice)) {
-                        closeCycle = true;
-                        closePrice = day.low <= liqPrice ? liqPrice : stopLossPrice;
-                        cycleStatus = day.low <= liqPrice ? 'LIQUIDADO 10x' : 'STOP LOSS';
-                    }
-
-                    if (closeCycle) {
-                        cycleCount++;
-                        totalExecOrders += filledOrdersCount;
-
-                        // Calculate PnL (leveraged position profit/loss)
-                        const grossPnl = (closePrice - averageDcaPrice) * totalBtcPosition;
-                        const fees = (totalBtcPosition * closePrice + totalBtcPosition * averageDcaPrice) * feeRate;
-                        const netPnl = grossPnl - fees;
-
-                        capital += netPnl;
-                        if (capital < 0) capital = 0;
-
-                        if (netPnl > 0) {
-                            cycleWins++;
-                            grossProfit += netPnl;
-                        } else {
-                            cycleLosses++;
-                            grossLoss += Math.abs(netPnl);
-                        }
-
-                        cyclesLog.push({
-                            id: cycleCount,
-                            startDate: cycleStartDate,
-                            closeDate: day.date,
-                            filledOrders: filledOrdersCount,
-                            avgPrice: averageDcaPrice.toFixed(2),
-                            closePrice: closePrice.toFixed(2),
-                            pnlUsdt: netPnl.toFixed(2),
-                            capitalAfter: capital.toFixed(2),
-                            status: cycleStatus
-                        });
-
-                        inCycle = false; // Reset for new cycle next day
-                    }
-                }
-
-                // Track daily equity curve
-                equityCurve.push(parseFloat(capital.toFixed(2)));
-                dates.push(day.date);
-
-                if (capital > peakCapital) peakCapital = capital;
-                const dd = (peakCapital - capital) / peakCapital;
-                if (dd > maxDrawdown) maxDrawdown = dd;
-
-                if (capital <= 10) break; // Bankrupt safety
-            }
-
-            globalCycleLog = cyclesLog;
-
-            // Calculate final statistics
-            const totalRoi = (((capital - initialCapital) / initialCapital) * 100).toFixed(2);
-            const winRate = cycleCount > 0 ? ((cycleWins / cycleCount) * 100).toFixed(1) : '0.0';
-            const avgOrdersPerCycle = cycleCount > 0 ? (totalExecOrders / cycleCount).toFixed(1) : '0';
-            const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? 'Inf' : '0.00');
-
-            // Update UI Stats
-            document.getElementById('statFinalCapital').innerText = `$${capital.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            const roiEl = document.getElementById('statRoi');
-            roiEl.innerText = `ROI: ${totalRoi}%`;
-            roiEl.className = `text-[11px] font-mono font-semibold mt-0.5 ${parseFloat(totalRoi) >= 0 ? 'text-accentgreen' : 'text-accentred'}`;
-
-            document.getElementById('statCycles').innerText = cycleCount;
-            document.getElementById('statWinRate').innerText = `Win Rate: ${winRate}%`;
-            document.getElementById('statExecOrders').innerText = `${totalExecOrders} (${avgOrdersPerCycle}/ciclo)`;
-            document.getElementById('statMaxDrawdown').innerText = `${(maxDrawdown * 100).toFixed(2)}%`;
-            document.getElementById('statProfitFactor').innerText = profitFactor;
-            document.getElementById('statStopLosses').innerText = cycleLosses;
-            document.getElementById('cycleCountBadge').innerText = `${cycleCount} ciclos ejecutados`;
-
-            // Render Table and Charts
-            renderCycleTable(cyclesLog);
-            renderCharts(dates, equityCurve, btcData);
-        }
-
-        // Render Cycle Log Table
-        function renderCycleTable(cycles) {
-            const tbody = document.getElementById('cycleTableBody');
-            tbody.innerHTML = '';
-
-            if (cycles.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-500">No se completó ningún ciclo con los parámetros configurados.</td></tr>`;
-                return;
-            }
-
-            const reversed = [...cycles].reverse();
-            reversed.forEach(c => {
-                const isWin = parseFloat(c.pnlUsdt) >= 0;
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition-colors border-b border-bordercolor/50";
-                tr.innerHTML = `
-                    <td class="p-3 font-bold text-slate-400">#${c.id}</td>
-                    <td class="p-3 text-slate-300">${c.startDate}</td>
-                    <td class="p-3 text-slate-300">${c.closeDate}</td>
-                    <td class="p-3 font-bold text-cyan-400">${c.filledOrders} / 50</td>
-                    <td class="p-3">$${parseFloat(c.avgPrice).toLocaleString()}</td>
-                    <td class="p-3">$${parseFloat(c.closePrice).toLocaleString()}</td>
-                    <td class="p-3 font-bold ${isWin ? 'text-accentgreen' : 'text-accentred'}">${isWin ? '+' : ''}$${parseFloat(c.pnlUsdt).toLocaleString()}</td>
-                    <td class="p-3 text-slate-200 font-bold">$${parseFloat(c.capitalAfter).toLocaleString()}</td>
-                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${c.status === 'TAKE PROFIT' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">${c.status}</span></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Render Charts with Chart.js
-        function renderCharts(dates, equityCurve, btcData) {
-            const step = Math.ceil(dates.length / 200);
-            let sampleDates = [];
-            let sampleEquity = [];
-            let samplePrices = [];
-
-            for (let i = 0; i < dates.length; i += step) {
-                sampleDates.push(dates[i]);
-                sampleEquity.push(equityCurve[i]);
-                samplePrices.push(btcData[i].price);
-            }
-
-            // Equity Chart
-            const ctxEquity = document.getElementById('equityChart').getContext('2d');
-            if (equityChartInstance) equityChartInstance.destroy();
-
-            equityChartInstance = new Chart(ctxEquity, {
-                type: 'line',
-                data: {
-                    labels: sampleDates,
-                    datasets: [{
-                        label: 'Capital (USDT)',
-                        data: sampleEquity,
-                        borderColor: '#00e676',
-                        backgroundColor: 'rgba(0, 230, 118, 0.05)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.1,
-                        pointRadius: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: '#181e2b' }, ticks: { color: '#64748b', maxTicksLimit: 6 } },
-                        y: { grid: { color: '#181e2b' }, ticks: { color: '#64748b' } }
-                    }
-                }
-            });
-
-            // Price Chart
-            const ctxPrice = document.getElementById('priceChart').getContext('2d');
-            if (priceChartInstance) priceChartInstance.destroy();
-
-            priceChartInstance = new Chart(ctxPrice, {
-                type: 'line',
-                data: {
-                    labels: sampleDates,
-                    datasets: [{
-                        label: 'BTC/USDT',
-                        data: samplePrices,
-                        borderColor: '#00f2fe',
-                        backgroundColor: 'rgba(0, 242, 254, 0.05)',
-                        borderWidth: 1.5,
-                        fill: true,
-                        tension: 0.1,
-                        pointRadius: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: '#181e2b' }, ticks: { color: '#64748b', maxTicksLimit: 6 } },
-                        y: { grid: { color: '#181e2b' }, ticks: { color: '#64748b' } }
-                    }
-                }
-            });
-        }
-
-        // Export Report to CSV
-        function exportCSV() {
-            if (!globalCycleLog || globalCycleLog.length === 0) {
-                alert("Primero ejecuta el backtest para exportar resultados.");
-                return;
-            }
-            let csv = "Ciclo,Fecha Inicio,Fecha Cierre,Ordenes Ejecutadas,Precio DCA Promedio,Precio Cierre,PnL USDT,Capital Final,Estado\n";
-            globalCycleLog.forEach(c => {
-                csv += `${c.id},${c.startDate},${c.closeDate},${c.filledOrders},${c.avgPrice},${c.closePrice},${c.pnlUsdt},${c.capitalAfter},${c.status}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `backtest_btc_10x_grid_${new Date().toISOString().split('T')[0]}.csv`);
-            a.click();
-        }
-
-        // Event Listeners & Initialize
-        document.getElementById('paramWeightScale').addEventListener('input', updateVolumePreview);
-
-        window.onload = function() {
-            updateVolumePreview();
-            runBacktest();
-        };
-    </script>
-</body>
-</html>
+</body></html>
