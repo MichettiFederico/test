@@ -165,6 +165,7 @@ pre.logs{margin:10px 0 0;max-height:260px;overflow:auto;font:12px/1.5 var(--font
         <select id="example">
           <option value="grid">Grilla long con salida en breakeven</option>
           <option value="ema">Cruce de EMAs con stop por ATR</option>
+          <option value="solana">Solana Scalping 10x (Python convertido)</option>
           <option value="blank">Plantilla vacía</option>
         </select></div>
       <div style="flex:1 1 220px;min-width:180px">
@@ -577,6 +578,90 @@ EXAMPLES.grid = [
 '',
 'function onCandle(c, api) {',
 '  if (api.position.qty === 0 && api.orders.length === 0) armarGrilla(api);',
+'}',
+''].join('\n');
+
+
+EXAMPLES.solana = [
+'// Conversión a JavaScript del bot SOL/USDT del archivo SOLANA_SCALPING_10X_WS.py.',
+'// Adaptación para backtesting con velas OHLC. No conecta a Binance ni envía órdenes reales.',
+'const MARGIN_PER_TRADE_USDT = 10;',
+'const LEVERAGE_TARGET = 10; // Configurá también 10x en el panel de Cuenta y costos.',
+'const TAKE_PROFIT_PCT = 0.004;',
+'const STOP_LOSS_PCT = 0.0025;',
+'const MAX_HOLD_MS = 300000;',
+'const MAX_SESSION_LOSS_USDT = 5;',
+'const RSI_PERIOD = 14, EMA_FAST = 9, EMA_SLOW = 21;',
+'let openedAt = 0, sessionPnl = 0, paused = false;',
+'',
+'function calcEma(values, period) {',
+'  if (values.length < period) return NaN;',
+'  const alpha = 2 / (period + 1);',
+'  let result = values[0];',
+'  for (let i = 1; i < values.length; i++) result = alpha * values[i] + (1 - alpha) * result;',
+'  return result;',
+'}',
+'',
+'function calcRsi(values, period) {',
+'  if (values.length < period + 1) return NaN;',
+'  let gains = 0, losses = 0;',
+'  for (let i = values.length - period; i < values.length; i++) {',
+'    const change = values[i] - values[i - 1];',
+'    gains += Math.max(change, 0);',
+'    losses += Math.max(-change, 0);',
+'  }',
+'  gains /= period; losses /= period;',
+'  if (losses === 0) return 100;',
+'  const rs = gains / losses;',
+'  return 100 - 100 / (1 + rs);',
+'}',
+'',
+'function onCandle(c, api) {',
+'  if (paused) return;',
+'  const p = api.position;',
+'  if (p.qty !== 0) {',
+'    if (openedAt && c.t - openedAt >= MAX_HOLD_MS) {',
+'      api.closeAll({ tag: "time-exit" });',
+'      api.log("Salida por tiempo máximo de 5 minutos");',
+'    }',
+'    return;',
+'  }',
+'  if (api.orders.length) return;',
+'  const values = api.closes(EMA_SLOW * 3);',
+'  if (values.length < EMA_SLOW * 3) return;',
+'  const fast = calcEma(values, EMA_FAST);',
+'  const slow = calcEma(values, EMA_SLOW);',
+'  const momentumRsi = calcRsi(values, RSI_PERIOD);',
+'  if (!isFinite(fast) || !isFinite(slow) || !isFinite(momentumRsi)) return;',
+'  if (fast > slow && momentumRsi >= 40 && momentumRsi <= 60 && values[values.length - 1] > values[values.length - 2]) {',
+'    const notional = MARGIN_PER_TRADE_USDT * LEVERAGE_TARGET;',
+'    const qty = notional / c.c;',
+'    openedAt = c.t;',
+'    api.market("buy", qty, { tag: "entry" });',
+'    api.log("Señal LONG | EMA9=" + fast.toFixed(4) + " EMA21=" + slow.toFixed(4) + " RSI=" + momentumRsi.toFixed(1));',
+'  }',
+'}',
+'',
+'function onFill(f, api) {',
+'  sessionPnl += f.pnl;',
+'  if (f.tag === "entry" && f.side === "buy" && f.pos > 0) {',
+'    const stopPrice = f.price * (1 - STOP_LOSS_PCT);',
+'    const targetPrice = f.price * (1 + TAKE_PROFIT_PCT);',
+'    api.stop("sell", 0, stopPrice, { closePosition: true, tag: "stop-loss" });',
+'    api.limit("sell", 0, targetPrice, { closePosition: true, tag: "take-profit" });',
+'    api.log("LONG abierto | qty=" + f.qty.toFixed(4) + " entrada=" + f.price.toFixed(4) + " SL=" + stopPrice.toFixed(4) + " TP=" + targetPrice.toFixed(4));',
+'    return;',
+'  }',
+'  if (f.tag === "stop-loss" || f.tag === "take-profit" || f.tag === "time-exit") {',
+'    api.cancelAll();',
+'    openedAt = 0;',
+'    api.log("Cierre " + f.tag + " | PnL neto del fill=" + f.pnl.toFixed(4) + " USDT");',
+'  }',
+'  if (sessionPnl <= -MAX_SESSION_LOSS_USDT && api.position.qty === 0) {',
+'    paused = true;',
+'    api.cancelAll();',
+'    api.log("Bot pausado: límite de pérdida acumulada de " + MAX_SESSION_LOSS_USDT + " USDT alcanzado.");',
+'  }',
 '}',
 ''].join('\n');
 
@@ -1030,7 +1115,7 @@ function attachHover(fig) {
 
 /* ---------- interfaz ---------- */
 function loadExample(key) { $('code').value = EXAMPLES[key]; $('codeFileName').textContent = 'Ejemplo cargado. Editá el código a gusto.'; checkPython(); saveDraft(); }
-function checkPython() { const c = $('code').value; $('codeNote').hidden = !(/^\s*(def |import \w|from \w+ import|class \w+\s*[:(])/m.test(c) && !/function|=>/.test(c)); }
+function checkPython() { const c = $('code').value; const py = /^\s*(def |import \w|from \w+ import|class \w+\s*[:(])/m.test(c) && !/function|=>/.test(c); $('codeNote').hidden = !py; $('codeNote').className = 'note warn'; if (py) $('codeNote').textContent = 'Este código parece Python. El backtester necesita JavaScript; cargá el bot SOL/USDT compatible para convertirlo automáticamente o convertí esta estrategia.'; }
 function saveDraft() { try { localStorage.setItem('bp_code', $('code').value); } catch (e) { /* sin storage */ } }
 function readFileInto(file, cb, onError) {
   if (!file) { if (onError) onError(new Error('No se seleccionó ningún archivo.')); return; }
@@ -1041,16 +1126,40 @@ function readFileInto(file, cb, onError) {
   fr.onabort = function () { if (onError) onError(new Error('La lectura del archivo fue cancelada.')); };
   fr.readAsText(file);
 }
+function isKnownSolanaPython(txt) {
+  return /class\\s+SolScalper/.test(txt) &&
+    /ccxt\\.pro/.test(txt) &&
+    /TAKE_PROFIT_PCT\\s*=/.test(txt) &&
+    /MAX_SESSION_LOSS_USDT\\s*=/.test(txt);
+}
 function loadCodeFile(file) {
   const allowed = /\\.(py|js|mjs|txt)$/i.test(file.name || '');
   if (!allowed) { setStatus('Formato no admitido. Elegí un archivo .py, .js, .mjs o .txt.', 'err'); return; }
   setStatus('Leyendo ' + file.name + '…');
   readFileInto(file, function (txt) {
-    $('code').value = txt;
-    $('codeFileName').textContent = 'Archivo cargado: ' + file.name + ' · ' + file.size.toLocaleString('es-AR') + ' bytes';
-    checkPython();
+    const isPy = /\\.py$/i.test(file.name || '');
+    if (isPy && isKnownSolanaPython(txt)) {
+      $('code').value = EXAMPLES.solana;
+      $('example').value = 'solana';
+      $('codeFileName').textContent = 'Python convertido a JavaScript: ' + file.name + ' · estrategia SOL/USDT adaptada al motor OHLC.';
+      $('codeNote').hidden = false;
+      $('codeNote').className = 'note ok';
+      $('codeNote').textContent = 'Conversión aplicada. La estrategia ya está en JavaScript y lista para correr. Elegí velas SOLUSDT de 1 minuto y configurá 10x. El filtro de spread del bot original no se puede reproducir con velas OHLC porque no contienen libro de órdenes.';
+      setStatus('Python convertido a JavaScript. Ya podés correr el backtest.', 'ok');
+    } else {
+      $('code').value = txt;
+      $('codeFileName').textContent = 'Archivo cargado: ' + file.name + ' · ' + file.size.toLocaleString('es-AR') + ' bytes';
+      checkPython();
+      if (isPy) {
+        $('codeNote').hidden = false;
+        $('codeNote').className = 'note warn';
+        $('codeNote').textContent = 'Este .py no coincide con el bot SOL/USDT conocido. No existe una conversión automática fiable para cualquier programa Python; el editor del backtester necesita JavaScript.';
+        setStatus('Python cargado, pero requiere conversión específica.', 'err');
+      } else {
+        setStatus('Archivo JavaScript cargado en el editor.', 'ok');
+      }
+    }
     saveDraft();
-    setStatus('Archivo cargado en el editor.', 'ok');
   }, function (err) {
     $('codeFileName').textContent = 'Error al cargar: ' + file.name;
     setStatus(err.message, 'err');
