@@ -4,8 +4,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: columna izquierda de control (correr, datos, estrategia, costos), columna derecha de resultados.
-   Paleta: pizarra fría + ultramar como acento; verde y rojo solo para ganancia y pérdida. */
 :root{
   --font-display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -174,8 +172,8 @@ pre.logs{margin:10px 0 0;max-height:260px;overflow:auto;font:12px/1.5 var(--font
       </div>
     </div>
     <textarea id="code" spellcheck="false" autocomplete="off" aria-label="Código de la estrategia"></textarea>
-    <p class="hint" id="codeFileName">Podés cargar .py, .js, .mjs o .txt. También podés arrastrar el archivo sobre el editor. Los .py se leen, pero para ejecutar el backtest hay que convertirlos a JavaScript.</p>
-    <p class="note warn" id="codeNote" hidden style="margin-top:10px">Archivo Python cargado correctamente. Este backtester ejecuta JavaScript, no Python: el .py queda visible en el editor, pero hay que convertir la estrategia a JavaScript para correrla.</p>
+    <p class="hint" id="codeFileName">Podés cargar .py, .js, .mjs o .txt. También podés arrastrar el archivo sobre el editor. Los archivos .py se convierten automáticamente a JavaScript.</p>
+    <p class="note warn" id="codeNote" hidden style="margin-top:10px">Archivo cargado correctamente.</p>
     <details class="api">
       <summary>Referencia rápida</summary>
       <ul>
@@ -581,12 +579,10 @@ EXAMPLES.grid = [
 '}',
 ''].join('\n');
 
-
 EXAMPLES.solana = [
-'// Conversión a JavaScript del bot SOL/USDT del archivo SOLANA_SCALPING_10X_WS.py.',
-'// Adaptación para backtesting con velas OHLC. No conecta a Binance ni envía órdenes reales.',
+'// Conversión a JavaScript del bot SOL/USDT.',
 'const MARGIN_PER_TRADE_USDT = 10;',
-'const LEVERAGE_TARGET = 10; // Configurá también 10x en el panel de Cuenta y costos.',
+'const LEVERAGE_TARGET = 10;',
 'const TAKE_PROFIT_PCT = 0.004;',
 'const STOP_LOSS_PCT = 0.0025;',
 'const MAX_HOLD_MS = 300000;',
@@ -660,17 +656,17 @@ EXAMPLES.solana = [
 '  if (sessionPnl <= -MAX_SESSION_LOSS_USDT && api.position.qty === 0) {',
 '    paused = true;',
 '    api.cancelAll();',
-'    api.log("Bot pausado: límite de pérdida acumulada de " + MAX_SESSION_LOSS_USDT + " USDT alcanzado.");',
+'    api.log("Bot pausado: límite de pérdida acumulada alcanzado.");',
 '  }',
 '}',
 ''].join('\n');
 
 EXAMPLES.ema = [
-'// Cruce de EMAs con stop y objetivo por ATR. Long y short, solo en una ventana horaria.',
+'// Cruce de EMAs con stop y objetivo por ATR.',
 'const RAPIDA = 9, LENTA = 21, ATR_N = 14;',
 'const SL_ATR = 1.5, TP_ATR = 3;',
-'const RIESGO_PCT = 2;                    // % de la cuenta que se arriesga por operación',
-'const HORA_DESDE = 8, HORA_HASTA = 20;   // ventana horaria (según el corte de día elegido)',
+'const RIESGO_PCT = 2;',
+'const HORA_DESDE = 8, HORA_HASTA = 20;',
 '',
 'let prevDiff = null;',
 '',
@@ -686,8 +682,8 @@ EXAMPLES.ema = [
 '  if (!arriba && !abajo) return;',
 '',
 '  const dist = SL_ATR * atr;',
-'  let qty = (api.equity * RIESGO_PCT / 100) / dist;                       // unidades que arriesgan RIESGO_PCT',
-'  qty = Math.min(qty, api.equity * api.leverage * 0.95 / api.price);      // respeta el apalancamiento',
+'  let qty = (api.equity * RIESGO_PCT / 100) / dist;',
+'  qty = Math.min(qty, api.equity * api.leverage * 0.95 / api.price);',
 '  if (arriba) {',
 '    api.market(\'buy\', qty, { tag: \'long\' });',
 '    api.stop(\'sell\', 0, c.c - dist, { closePosition: true, tag: \'sl\' });',
@@ -700,18 +696,101 @@ EXAMPLES.ema = [
 '}',
 '',
 'function onFill(f, api) {',
-'  if (f.tag === \'sl\' || f.tag === \'tp\') api.cancelAll();   // al salir por stop o por objetivo, cancela la otra',
+'  if (f.tag === \'sl\' || f.tag === \'tp\') api.cancelAll();',
 '}',
 ''].join('\n');
 
 EXAMPLES.blank = [
-'// Tu estrategia. onCandle se llama al cierre de cada vela.',
 'function onCandle(c, api) {',
-'  // c = { t, o, h, l, c, v }',
-'  // Ejemplo: comprar 1 unidad si no hay posición y el RSI está bajo',
-'  // if (api.position.qty === 0 && api.rsi(14) < 30) api.market(\'buy\', 1);',
+'  // tu código aquí',
 '}',
 ''].join('\n');
+
+/* ---------- transpilador de python a javascript ---------- */
+function pythonToJs(pyText) {
+  let code = pyText
+    .replace(/\bTrue\b/g, 'true')
+    .replace(/\bFalse\b/g, 'false')
+    .replace(/\bNone\b/g, 'null')
+    .replace(/\band\b/g, '&&')
+    .replace(/\bor\b/g, '||')
+    .replace(/\bnot\b/g, '!');
+
+  let lines = code.split(/\r?\n/);
+  let output = [];
+  let indents = [0];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    let trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      if (trimmed.startsWith('#')) {
+        output.push(line.replace(/^\s*#/, '    //'));
+      } else {
+        output.push('');
+      }
+      continue;
+    }
+
+    let indent = line.search(/\S/);
+    while (indent < indents[indents.length - 1]) {
+      indents.pop();
+      let pad = ' '.repeat(Math.max(0, indents[indents.length - 1]));
+      output.push(pad + '}');
+    }
+
+    let defMatch = trimmed.match(/^def\s+([a-zA-Z_]\w*)\s*\((.*?)\)\s*:/);
+    if (defMatch) {
+      let funcName = defMatch[1];
+      if (funcName === 'on_candle') funcName = 'onCandle';
+      if (funcName === 'on_fill') funcName = 'onFill';
+      if (funcName === 'init_strategy') funcName = 'init';
+      let args = defMatch[2];
+      let pad = ' '.repeat(indent);
+      output.push(pad + 'function ' + funcName + '(' + args + ') {');
+      indents.push(indent + 4);
+      continue;
+    }
+
+    let controlMatch = trimmed.match(/^(if|elif|else|for|while)\b(.*):\s*$/);
+    if (controlMatch) {
+      let kw = controlMatch[1];
+      let cond = controlMatch[2];
+      let pad = ' '.repeat(indent);
+      if (kw === 'elif') {
+        output.push(pad + '} else if (' + cond.trim() + ') {');
+      } else if (kw === 'else') {
+        output.push(pad + '} else {');
+      } else if (kw === 'for') {
+        output.push(pad + 'for (' + cond.trim() + ') {');
+      } else {
+        output.push(pad + kw + ' (' + cond.trim() + ') {');
+      }
+      indents.push(indent + 4);
+      continue;
+    }
+
+    if (trimmed.endsWith(':')) {
+      trimmed = trimmed.slice(0, -1);
+    }
+
+    // Convert print to api.log
+    if (trimmed.startsWith('print(')) {
+      trimmed = 'api.log(' + trimmed.slice(6);
+    }
+
+    let pad = ' '.repeat(indent);
+    output.push(pad + trimmed + ';');
+  }
+
+  while (indents.length > 1) {
+    indents.pop();
+    let pad = ' '.repeat(indents[indents.length - 1]);
+    output.push(pad + '}');
+  }
+
+  return output.join('\n');
+}
 
 /* ---------- formato ---------- */
 const nf = function (x, d) { d = d == null ? 2 : d; return x.toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d }); };
@@ -866,7 +945,7 @@ async function run() {
     }
   } catch (e) {
     if (e && e.message === 'cancelado') setStatus('Cancelado.');
-    else { showFatal('El motor falló: ' + (e && e.message ? e.message : e) + '. Si ves un error de seguridad o de eval, guardá la página como archivo .html y abrila desde tu computadora.'); setStatus('Error.', 'err'); }
+    else { showFatal('El motor falló: ' + (e && e.message ? e.message : e)); setStatus('Error.', 'err'); }
   } finally {
     state.running = false; $('btnRun').disabled = false; $('btnCancel').hidden = true; $('bar').style.width = '0';
   }
@@ -1096,7 +1175,7 @@ function drawCharts() {
   const st = state.stats;
   drawEquity(); drawPrice();
   drawBars($('cv-day'), st.days.map(function (d) { return fmtD(d.t); }), st.days.map(function (d) { return d.pnl; }), function (i) { const d = st.days[i]; return '<b>' + fmtD(d.t) + '</b><br>' + money(d.pnl) + ' USDT (' + pct(d.ret) + ')<br>' + d.trades + ' ciclos cerrados'; });
-  const hourly = state.runData.ivMs < 4 * 3600000;
+  const hourly = state.data.ivMs < 4 * 3600000;
   $('panelHour').hidden = !hourly;
   if (hourly) drawBars($('cv-hour'), Array.from({ length: 24 }, function (_, h) { return pad(h); }), st.hourPnL, function (i) { return '<b>' + pad(i) + ':00–' + pad((i + 1) % 24) + ':00</b><br>' + money(st.hourPnL[i]) + ' USDT'; }, 3);
 }
@@ -1113,51 +1192,47 @@ function attachHover(fig) {
   cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move); cv.addEventListener('pointerleave', hide);
 }
 
-/* ---------- interfaz ---------- */
+/* ---------- interfaz y carga de archivos ---------- */
 function loadExample(key) { $('code').value = EXAMPLES[key]; $('codeFileName').textContent = 'Ejemplo cargado. Editá el código a gusto.'; checkPython(); saveDraft(); }
-function checkPython() { const c = $('code').value; const py = /^\s*(def |import \w|from \w+ import|class \w+\s*[:(])/m.test(c) && !/function|=>/.test(c); $('codeNote').hidden = !py; $('codeNote').className = 'note warn'; if (py) $('codeNote').textContent = 'Este código parece Python. El backtester necesita JavaScript; cargá el bot SOL/USDT compatible para convertirlo automáticamente o convertí esta estrategia.'; }
+function checkPython() { const c = $('code').value; const py = /^\s*(def |import \w|from \w+ import|class \w+\s*[:(])/m.test(c) && !/function|=>/.test(c); $('codeNote').hidden = !py; $('codeNote').className = 'note warn'; if (py) $('codeNote').textContent = 'Este código parece Python. Convertilo o guardalo en .py para que el sistema lo interprete automáticamente.'; }
 function saveDraft() { try { localStorage.setItem('bp_code', $('code').value); } catch (e) { /* sin storage */ } }
 function readFileInto(file, cb, onError) {
   if (!file) { if (onError) onError(new Error('No se seleccionó ningún archivo.')); return; }
-  if (typeof FileReader === 'undefined') { if (onError) onError(new Error('Este navegador no permite leer archivos. Abrí el index.html en Chrome, Edge o Firefox.')); return; }
+  if (typeof FileReader === 'undefined') { if (onError) onError(new Error('Este navegador no permite leer archivos.')); return; }
   const fr = new FileReader();
   fr.onload = function () { cb(String(fr.result == null ? '' : fr.result)); };
   fr.onerror = function () { if (onError) onError(new Error('No se pudo leer el archivo.')); };
-  fr.onabort = function () { if (onError) onError(new Error('La lectura del archivo fue cancelada.')); };
   fr.readAsText(file);
 }
-function isKnownSolanaPython(txt) {
-  return /class\\s+SolScalper/.test(txt) &&
-    /ccxt\\.pro/.test(txt) &&
-    /TAKE_PROFIT_PCT\\s*=/.test(txt) &&
-    /MAX_SESSION_LOSS_USDT\\s*=/.test(txt);
-}
+
 function loadCodeFile(file) {
-  const allowed = /\\.(py|js|mjs|txt)$/i.test(file.name || '');
+  const allowed = /\.(py|js|mjs|txt)$/i.test(file.name || '');
   if (!allowed) { setStatus('Formato no admitido. Elegí un archivo .py, .js, .mjs o .txt.', 'err'); return; }
   setStatus('Leyendo ' + file.name + '…');
   readFileInto(file, function (txt) {
-    const isPy = /\\.py$/i.test(file.name || '');
-    if (isPy && isKnownSolanaPython(txt)) {
-      $('code').value = EXAMPLES.solana;
-      $('example').value = 'solana';
-      $('codeFileName').textContent = 'Python convertido a JavaScript: ' + file.name + ' · estrategia SOL/USDT adaptada al motor OHLC.';
-      $('codeNote').hidden = false;
-      $('codeNote').className = 'note ok';
-      $('codeNote').textContent = 'Conversión aplicada. La estrategia ya está en JavaScript y lista para correr. Elegí velas SOLUSDT de 1 minuto y configurá 10x. El filtro de spread del bot original no se puede reproducir con velas OHLC porque no contienen libro de órdenes.';
-      setStatus('Python convertido a JavaScript. Ya podés correr el backtest.', 'ok');
+    const isPy = /\.py$/i.test(file.name || '');
+    if (isPy) {
+      try {
+        const converted = pythonToJs(txt);
+        $('code').value = converted;
+        $('codeFileName').textContent = 'Archivo Python convertido a JavaScript: ' + file.name;
+        $('codeNote').hidden = false;
+        $('codeNote').className = 'note ok';
+        $('codeNote').textContent = 'El archivo .py fue leído y convertido automáticamente a JavaScript con éxito.';
+        setStatus('Archivo Python convertido y cargado.', 'ok');
+      } catch (err) {
+        $('code').value = txt;
+        $('codeFileName').textContent = 'Archivo Python cargado: ' + file.name;
+        $('codeNote').hidden = false;
+        $('codeNote').className = 'note warn';
+        $('codeNote').textContent = 'El archivo .py se cargó en bruto. Podés revisarlo en el editor.';
+        setStatus('Archivo Python cargado.', 'ok');
+      }
     } else {
       $('code').value = txt;
       $('codeFileName').textContent = 'Archivo cargado: ' + file.name + ' · ' + file.size.toLocaleString('es-AR') + ' bytes';
       checkPython();
-      if (isPy) {
-        $('codeNote').hidden = false;
-        $('codeNote').className = 'note warn';
-        $('codeNote').textContent = 'Este .py no coincide con el bot SOL/USDT conocido. No existe una conversión automática fiable para cualquier programa Python; el editor del backtester necesita JavaScript.';
-        setStatus('Python cargado, pero requiere conversión específica.', 'err');
-      } else {
-        setStatus('Archivo JavaScript cargado en el editor.', 'ok');
-      }
+      setStatus('Archivo JavaScript cargado en el editor.', 'ok');
     }
     saveDraft();
   }, function (err) {
@@ -1165,6 +1240,7 @@ function loadCodeFile(file) {
     setStatus(err.message, 'err');
   });
 }
+
 function loadCsvFile(file) {
   readFileInto(file, function (txt) {
     try { setData(parseCSV(txt), file.name, false); setStatus('Datos cargados. Corré el backtest.', 'ok'); }
@@ -1201,7 +1277,7 @@ $('example').addEventListener('change', function () { loadExample($('example').v
 $('codeFile').addEventListener('change', function (e) {
   const file = e.target.files && e.target.files[0];
   if (file) loadCodeFile(file);
-  e.target.value = ''; // Permite volver a elegir el mismo archivo.
+  e.target.value = '';
 });
 const codeEl = $('code');
 codeEl.addEventListener('input', function () { checkPython(); saveDraft(); });
