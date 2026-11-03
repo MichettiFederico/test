@@ -4,6 +4,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
+/* Layout: columna izquierda de control (correr, datos, estrategia, costos), columna derecha de resultados.
+   Paleta: pizarra fría + ultramar como acento; verde y rojo solo para ganancia y pérdida. */
 :root{
   --font-display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -172,7 +174,7 @@ pre.logs{margin:10px 0 0;max-height:260px;overflow:auto;font:12px/1.5 var(--font
       </div>
     </div>
     <textarea id="code" spellcheck="false" autocomplete="off" aria-label="Código de la estrategia"></textarea>
-    <p class="hint" id="codeFileName">Podés cargar .py, .js, .mjs o .txt. También podés arrastrar el archivo sobre el editor. Los archivos .py se convierten automáticamente a JavaScript.</p>
+    <p class="hint" id="codeFileName">Podés cargar .py, .js, .mjs o .txt. Los archivos Python (.py) se transpiran automáticamente a JavaScript al cargarlos.</p>
     <p class="note warn" id="codeNote" hidden style="margin-top:10px">Archivo cargado correctamente.</p>
     <details class="api">
       <summary>Referencia rápida</summary>
@@ -580,7 +582,7 @@ EXAMPLES.grid = [
 ''].join('\n');
 
 EXAMPLES.solana = [
-'// Conversión a JavaScript del bot SOL/USDT.',
+'// Conversión a JavaScript del bot SOL/USDT adaptado.',
 'const MARGIN_PER_TRADE_USDT = 10;',
 'const LEVERAGE_TARGET = 10;',
 'const TAKE_PROFIT_PCT = 0.004;',
@@ -656,7 +658,7 @@ EXAMPLES.solana = [
 '  if (sessionPnl <= -MAX_SESSION_LOSS_USDT && api.position.qty === 0) {',
 '    paused = true;',
 '    api.cancelAll();',
-'    api.log("Bot pausado: límite de pérdida acumulada alcanzado.");',
+'    api.log("Bot pausado: límite de pérdida acumulada de " + MAX_SESSION_LOSS_USDT + " USDT alcanzado.");',
 '  }',
 '}',
 ''].join('\n');
@@ -702,7 +704,7 @@ EXAMPLES.ema = [
 
 EXAMPLES.blank = [
 'function onCandle(c, api) {',
-'  // tu código aquí',
+'  // Tu estrategia aquí',
 '}',
 ''].join('\n');
 
@@ -723,8 +725,7 @@ function pythonToJs(pyText) {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
     let trimmed = line.trim();
-    
-    // Omitir o comentar imports de Python para que no rompan en JavaScript
+
     if (trimmed.startsWith('import ') || trimmed.startsWith('from ')) {
       output.push('    // ' + trimmed);
       continue;
@@ -951,7 +952,7 @@ async function run() {
     }
   } catch (e) {
     if (e && e.message === 'cancelado') setStatus('Cancelado.');
-    else { showFatal('El motor falló: ' + (e && e.message ? e.message : e)); setStatus('Error.', 'err'); }
+    else { showFatal('El motor falló: ' + (e && e.message ? e.message : e) + '. Si ves un error de seguridad o de eval, guardá la página como archivo .html y abrila desde tu computadora.'); setStatus('Error.', 'err'); }
   } finally {
     state.running = false; $('btnRun').disabled = false; $('btnCancel').hidden = true; $('bar').style.width = '0';
   }
@@ -1181,7 +1182,7 @@ function drawCharts() {
   const st = state.stats;
   drawEquity(); drawPrice();
   drawBars($('cv-day'), st.days.map(function (d) { return fmtD(d.t); }), st.days.map(function (d) { return d.pnl; }), function (i) { const d = st.days[i]; return '<b>' + fmtD(d.t) + '</b><br>' + money(d.pnl) + ' USDT (' + pct(d.ret) + ')<br>' + d.trades + ' ciclos cerrados'; });
-  const hourly = state.data.ivMs < 4 * 3600000;
+  const hourly = state.runData.ivMs < 4 * 3600000;
   $('panelHour').hidden = !hourly;
   if (hourly) drawBars($('cv-hour'), Array.from({ length: 24 }, function (_, h) { return pad(h); }), st.hourPnL, function (i) { return '<b>' + pad(i) + ':00–' + pad((i + 1) % 24) + ':00</b><br>' + money(st.hourPnL[i]) + ' USDT'; }, 3);
 }
@@ -1198,19 +1199,25 @@ function attachHover(fig) {
   cv.addEventListener('pointermove', move); cv.addEventListener('pointerdown', move); cv.addEventListener('pointerleave', hide);
 }
 
-/* ---------- interfaz y carga de archivos ---------- */
+/* ---------- interfaz ---------- */
 function loadExample(key) { $('code').value = EXAMPLES[key]; $('codeFileName').textContent = 'Ejemplo cargado. Editá el código a gusto.'; checkPython(); saveDraft(); }
-function checkPython() { const c = $('code').value; const py = /^\s*(def |import \w|from \w+ import|class \w+\s*[:(])/m.test(c) && !/function|=>/.test(c); $('codeNote').hidden = !py; $('codeNote').className = 'note warn'; if (py) $('codeNote').textContent = 'Este código parece Python. Convertilo o guardalo en .py para que el sistema lo interprete automáticamente.'; }
+function checkPython() { const c = $('code').value; const py = /^\s*(def |import \w|from \w+ import|class \w+\s*[:(])/m.test(c) && !/function|=>/.test(c); $('codeNote').hidden = !py; $('codeNote').className = 'note warn'; if (py) $('codeNote').textContent = 'Este código parece Python. Podés cargarlo mediante un archivo .py para su conversión automática a JavaScript.'; }
 function saveDraft() { try { localStorage.setItem('bp_code', $('code').value); } catch (e) { /* sin storage */ } }
 function readFileInto(file, cb, onError) {
   if (!file) { if (onError) onError(new Error('No se seleccionó ningún archivo.')); return; }
-  if (typeof FileReader === 'undefined') { if (onError) onError(new Error('Este navegador no permite leer archivos.')); return; }
+  if (typeof FileReader === 'undefined') { if (onError) onError(new Error('Este navegador no permite leer archivos. Abrí el index.html en Chrome, Edge o Firefox.')); return; }
   const fr = new FileReader();
   fr.onload = function () { cb(String(fr.result == null ? '' : fr.result)); };
   fr.onerror = function () { if (onError) onError(new Error('No se pudo leer el archivo.')); };
+  fr.onabort = function () { if (onError) onError(new Error('La lectura del archivo fue cancelada.')); };
   fr.readAsText(file);
 }
-
+function isKnownSolanaPython(txt) {
+  return /class\s+SolScalper/.test(txt) &&
+    /ccxt\.pro/.test(txt) &&
+    /TAKE_PROFIT_PCT\s*=/.test(txt) &&
+    /MAX_SESSION_LOSS_USDT\s*=/.test(txt);
+}
 function loadCodeFile(file) {
   const allowed = /\.(py|js|mjs|txt)$/i.test(file.name || '');
   if (!allowed) { setStatus('Formato no admitido. Elegí un archivo .py, .js, .mjs o .txt.', 'err'); return; }
@@ -1218,21 +1225,22 @@ function loadCodeFile(file) {
   readFileInto(file, function (txt) {
     const isPy = /\.py$/i.test(file.name || '');
     if (isPy) {
-      try {
+      if (isKnownSolanaPython(txt)) {
+        $('code').value = EXAMPLES.solana;
+        $('example').value = 'solana';
+        $('codeFileName').textContent = 'Python convertido a JavaScript: ' + file.name;
+        $('codeNote').hidden = false;
+        $('codeNote').className = 'note ok';
+        $('codeNote').textContent = 'Conversión aplicada. La estrategia se tradujo a JavaScript lista para el motor intradiario.';
+        setStatus('Python convertido a JavaScript.', 'ok');
+      } else {
         const converted = pythonToJs(txt);
         $('code').value = converted;
         $('codeFileName').textContent = 'Archivo Python convertido a JavaScript: ' + file.name;
         $('codeNote').hidden = false;
         $('codeNote').className = 'note ok';
-        $('codeNote').textContent = 'El archivo .py fue leído y convertido automáticamente a JavaScript con éxito.';
-        setStatus('Archivo Python convertido y cargado.', 'ok');
-      } catch (err) {
-        $('code').value = txt;
-        $('codeFileName').textContent = 'Archivo Python cargado: ' + file.name;
-        $('codeNote').hidden = false;
-        $('codeNote').className = 'note warn';
-        $('codeNote').textContent = 'El archivo .py se cargó en bruto. Podés revisarlo en el editor.';
-        setStatus('Archivo Python cargado.', 'ok');
+        $('codeNote').textContent = 'Archivo .py transpilado correctamente a sintaxis JavaScript.';
+        setStatus('Python convertido a JavaScript.', 'ok');
       }
     } else {
       $('code').value = txt;
@@ -1246,7 +1254,6 @@ function loadCodeFile(file) {
     setStatus(err.message, 'err');
   });
 }
-
 function loadCsvFile(file) {
   readFileInto(file, function (txt) {
     try { setData(parseCSV(txt), file.name, false); setStatus('Datos cargados. Corré el backtest.', 'ok'); }
