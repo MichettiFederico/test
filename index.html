@@ -723,6 +723,13 @@ function pythonToJs(pyText) {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
     let trimmed = line.trim();
+    
+    // Omitir o comentar imports de Python para que no rompan en JavaScript
+    if (trimmed.startsWith('import ') || trimmed.startsWith('from ')) {
+      output.push('    // ' + trimmed);
+      continue;
+    }
+
     if (!trimmed || trimmed.startsWith('#')) {
       if (trimmed.startsWith('#')) {
         output.push(line.replace(/^\s*#/, '    //'));
@@ -774,7 +781,6 @@ function pythonToJs(pyText) {
       trimmed = trimmed.slice(0, -1);
     }
 
-    // Convert print to api.log
     if (trimmed.startsWith('print(')) {
       trimmed = 'api.log(' + trimmed.slice(6);
     }
