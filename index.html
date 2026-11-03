@@ -1,568 +1,166 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Backtest de grilla SOL</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargar estrategia Python</title>
   <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #edf0f4;
-      --panel: #fff;
-      --ink: #14202e;
-      --muted: #4f6075;
-      --line: #d5dce5;
-      --accent: #2744e0;
-      --gain: #0b8a5d;
-      --loss: #cb2c48;
+    :root{
+      --bg:#0f172a;
+      --panel:#111827;
+      --panel-2:#1f2937;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --line:#334155;
+      --accent:#60a5fa;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --danger:#f87171;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0e151d;
-        --panel: #151f2a;
-        --ink: #e6ecf3;
-        --muted: #9caec2;
-        --line: #2a3846;
-        --accent: #8da3ff;
-        --gain: #3ad4a0;
-        --loss: #ff7389;
-      }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font:16px/1.5 system-ui, sans-serif;
+      padding:24px;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 24px;
-      background: var(--bg);
-      color: var(--ink);
-      font: 15px/1.5 system-ui, sans-serif;
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
     }
-    main { max-width: 1000px; margin: auto; }
-    h1 { margin: 0 0 6px; }
-    h2 { margin: 0 0 12px; font-size: 17px; }
-    p { color: var(--muted); }
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 16px;
-      margin: 14px 0;
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:18px;
+      margin-bottom:18px;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
+    h1{
+      margin:0 0 8px;
+      font-size:2rem;
     }
-    label { display: block; color: var(--muted); font-size: 13px; }
-    input, select, button {
-      width: 100%;
-      margin-top: 4px;
-      padding: 9px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--panel);
-      color: var(--ink);
-      font: inherit;
+    p{
+      color:var(--muted);
+      margin:8px 0 0;
     }
-    button { cursor: pointer; }
-    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .buttons button { width: auto; }
-    .notice {
-      padding: 10px 12px;
-      border-radius: 7px;
-      background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+    input[type=file], button, textarea{
+      width:100%;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:var(--panel-2);
+      color:var(--text);
+      font:inherit;
+      padding:12px 14px;
     }
-    .error { color: var(--loss); }
-    .kpis {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 10px;
+    button{
+      cursor:pointer;
+      background:var(--accent);
+      color:#07111f;
+      border:none;
+      font-weight:700;
+      transition:filter .15s ease;
     }
-    .kpi { padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
-    .kpi span { display: block; color: var(--muted); font-size: 12px; }
-    .kpi strong { display: block; margin-top: 5px; font-size: 20px; overflow-wrap: anywhere; }
-    .gain { color: var(--gain); }
-    .loss { color: var(--loss); }
-    .tablewrap { overflow: auto; max-height: 420px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-    th:first-child, td:first-child { text-align: left; }
-    #status { min-height: 1.5em; }
-    @media (max-width: 600px) { body { padding: 12px; } }
+    button:hover{ filter:brightness(1.05); }
+    textarea{
+      width:100%;
+      min-height:420px;
+      resize:vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:14px;
+      line-height:1.5;
+      padding:16px;
+    }
+    .row{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:12px;
+      align-items:center;
+    }
+    .status{
+      margin-top:12px;
+      font-size:0.95rem;
+      color:var(--good);
+    }
+    .status.warn{ color:var(--warn); }
+    .status.err{ color:var(--danger); }
+    .note{
+      border-left:3px solid var(--accent);
+      padding-left:12px;
+      color:var(--muted);
+      margin-top:12px;
+    }
   </style>
 </head>
 <body>
-<main>
-  <h1>Backtest de grilla SOL</h1>
-  <p>Simula una adaptación de la estrategia de grilla de SOLANA.py con velas históricas.</p>
-
-  <div class="panel">
-    <h2>Datos</h2>
-    <div class="grid">
-      <label>
-        Generar velas sintéticas
-        <button id="demo" type="button">Generar ejemplo</button>
-      </label>
-      <label>
-        Cargar velas CSV
-        <input id="csv" type="file" accept=".csv,.txt">
-      </label>
+  <div class="wrap">
+    <div class="panel">
+      <h1>Cargar estrategia Python</h1>
+      <p>Esta página solo carga y muestra el archivo Python. No puede ejecutarlo ni leer `.env` desde el navegador por seguridad.</p>
+      <div class="note">
+        Para correr la estrategia y traer velas reales desde Binance, se usa un script Python local que lee el archivo <code>.env</code>.
+      </div>
     </div>
-    <p class="notice">
-      CSV esperado: columnas <code>time, open, high, low, close</code>, o CSV de velas de Binance
-      sin encabezados. El tiempo puede ser una fecha ISO o milisegundos.
-    </p>
-    <p id="dataInfo">Sin datos cargados.</p>
+
+    <div class="panel">
+      <div class="row">
+        <input id="fileInput" type="file" accept=".py" />
+        <button id="loadExampleBtn" type="button">Cargar ejemplo</button>
+      </div>
+      <div id="status" class="status">Sin archivo cargado.</div>
+    </div>
+
+    <div class="panel">
+      <textarea id="code" spellcheck="false" aria-label="Contenido del archivo .py"></textarea>
+    </div>
   </div>
 
-  <div class="panel">
-    <h2>Parámetros de la estrategia</h2>
-    <div class="grid">
-      <label>Capital inicial (USDT)<input id="capital" type="number" value="25" min="1" step="any"></label>
-      <label>Asignación máxima (SOL)<input id="allocation" type="number" value="25" min="0.001" step="any"></label>
-      <label>Apalancamiento (x)<input id="leverage" type="number" value="10" min="1" max="125" step="any"></label>
-      <label>Niveles de grilla<input id="levels" type="number" value="180" min="1" max="500" step="1"></label>
-      <label>Multiplicador de tamaño<input id="multiplier" type="number" value="1.015" min="1" step="any"></label>
-      <label>Umbral break-even (%)<input id="threshold" type="number" value="50" min="1" max="100" step="any"></label>
-      <label>Factor ATR<input id="atrFactor" type="number" value="0.05" min="0" step="any"></label>
-      <label>Stop por precio (%)<input id="priceStop" type="number" value="8" min="0" step="any"></label>
-      <label>Stop por cuenta (%)<input id="accountStop" type="number" value="15" min="0" step="any"></label>
-      <label>Comisión maker (%)<input id="maker" type="number" value="0.02" min="0" step="any"></label>
-      <label>Comisión taker (%)<input id="taker" type="number" value="0.05" min="0" step="any"></label>
-      <label>Slippage stop (%)<input id="slippage" type="number" value="0.01" min="0" step="any"></label>
-      <label>Período ATR<input id="atrPeriod" type="number" value="14" min="1" max="500" step="1"></label>
-    </div>
-    <div class="buttons">
-      <button class="primary" id="run" type="button">Correr backtest</button>
-    </div>
-    <p id="status" role="status"></p>
-  </div>
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const statusEl = document.getElementById("status");
+    const codeEl = document.getElementById("code");
 
-  <section class="panel">
-    <h2>Resultados</h2>
-    <div id="results" class="kpis"></div>
-  </section>
+    const examplePython = `import os
+import asyncio
+import ccxt
 
-  <section class="panel">
-    <h2>Ciclos de operación</h2>
-    <div class="tablewrap">
-      <table id="trades">
-        <thead>
-          <tr>
-            <th>#</th><th>Abrió</th><th>Cerró</th><th>Órdenes</th>
-            <th>Precio medio</th><th>Salida</th><th>Resultado (USDT)</th><th>Estado</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-</main>
+# Este es solo un ejemplo visible en la página.
+# La página no puede ejecutarlo.
 
-<script>
-"use strict";
+print("Este archivo .py fue cargado desde el navegador.")
+`;
 
-const $ = id => document.getElementById(id);
-let candles = [];
-
-function number(id, fallback) {
-  const value = Number($(id).value);
-  return Number.isFinite(value) ? value : fallback;
-}
-
-function format(value, digits = 2) {
-  return Number(value).toLocaleString("es-AR", {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits
-  });
-}
-
-function formatTime(ms) {
-  if (!Number.isFinite(ms)) return "—";
-  return new Date(ms).toLocaleString("es-AR");
-}
-
-function parseTime(value) {
-  const text = String(value).trim().replaceAll('"', "");
-  if (/^\d+(\.\d+)?$/.test(text)) {
-    const n = Number(text);
-    return n > 1e11 ? n : n * 1000;
-  }
-  const parsed = Date.parse(text);
-  return Number.isFinite(parsed) ? parsed : NaN;
-}
-
-function setCandles(rows, label) {
-  const clean = rows
-    .filter(r => r && r.length >= 5)
-    .map(r => ({
-      t: Number(r.t),
-      o: Number(r.o),
-      h: Number(r.h),
-      l: Number(r.l),
-      c: Number(r.c)
-    }))
-    .filter(x => Number.isFinite(x.t) &&
-      [x.o, x.h, x.l, x.c].every(Number.isFinite) &&
-      x.o > 0 && x.h > 0 && x.l > 0 && x.c > 0)
-    .sort((a, b) => a.t - b.t);
-
-  candles = clean.filter((x, i) => i === 0 || x.t !== clean[i - 1].t);
-  if (candles.length < 10) throw new Error("Hacen falta al menos 10 velas válidas.");
-
-  $("dataInfo").textContent =
-    label + " · " + candles.length.toLocaleString("es-AR") +
-    " velas · " + formatTime(candles[0].t) + " → " +
-    formatTime(candles[candles.length - 1].t);
-}
-
-function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(line => line.trim());
-  if (lines.length < 10) throw new Error("El CSV tiene muy pocas filas.");
-
-  const delimiter = lines[0].includes(";") && !lines[0].includes(",") ? ";" : ",";
-  const first = lines[0].split(delimiter).map(x => x.trim().replaceAll('"', "").toLowerCase());
-  const hasHeader = first.some(x => /^(time|timestamp|date|datetime|open|high|low|close|o|h|l|c)$/.test(x));
-
-  let ix = { t: 0, o: 1, h: 2, l: 3, c: 4 };
-  if (hasHeader) {
-    const find = names => first.findIndex(x => names.includes(x));
-    ix = {
-      t: find(["time", "timestamp", "date", "datetime", "open time", "open_time"]),
-      o: find(["open", "o"]),
-      h: find(["high", "h"]),
-      l: find(["low", "l"]),
-      c: find(["close", "c"])
-    };
-    if (Object.values(ix).some(x => x < 0)) {
-      throw new Error("No encontré las columnas time, open, high, low y close.");
-    }
-  }
-
-  const rows = [];
-  for (let i = hasHeader ? 1 : 0; i < lines.length; i++) {
-    const p = lines[i].split(delimiter);
-    rows.push({
-      t: parseTime(p[ix.t]),
-      o: Number(p[ix.o]),
-      h: Number(p[ix.h]),
-      l: Number(p[ix.l]),
-      c: Number(p[ix.c])
+    document.getElementById("loadExampleBtn").addEventListener("click", () => {
+      codeEl.value = examplePython;
+      fileInput.value = "";
+      statusEl.textContent = "Ejemplo cargado para visualización.";
+      statusEl.className = "status";
     });
-  }
-  return rows;
-}
 
-function generateDemo() {
-  let seed = 193;
-  const random = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) {
+        statusEl.textContent = "No se seleccionó ningún archivo.";
+        statusEl.className = "status err";
+        return;
+      }
 
-  const rows = [];
-  const interval = 5 * 60 * 1000;
-  const start = Date.now() - 21 * 24 * 60 * 60 * 1000;
-  let price = 150;
+      if (!file.name.toLowerCase().endsWith(".py")) {
+        statusEl.textContent = "Solo se permiten archivos .py";
+        statusEl.className = "status err";
+        return;
+      }
 
-  for (let i = 0; i < 21 * 288; i++) {
-    const open = price;
-    const change = (random() - 0.5) * 0.006;
-    const close = Math.max(1, open * (1 + change));
-    const spread = open * (0.0005 + random() * 0.001);
-    rows.push({
-      t: start + i * interval,
-      o: open,
-      h: Math.max(open, close) + spread,
-      l: Math.min(open, close) - spread,
-      c: close
+      try {
+        const text = await file.text();
+        codeEl.value = text;
+        statusEl.textContent = `Archivo cargado: ${file.name}`;
+        statusEl.className = "status";
+      } catch (error) {
+        statusEl.textContent = "No se pudo leer el archivo.";
+        statusEl.className = "status err";
+      }
     });
-    price = close;
-  }
-
-  setCandles(rows, "SOL sintético");
-  $("status").textContent = "Velas de ejemplo listas. No representan datos reales.";
-}
-
-function atrAt(index, period) {
-  const first = Math.max(0, index - period + 1);
-  let sum = 0, count = 0;
-  for (let i = first; i <= index; i++) {
-    const previousClose = i > 0 ? candles[i - 1].c : candles[i].o;
-    const tr = Math.max(
-      candles[i].h - candles[i].l,
-      Math.abs(candles[i].h - previousClose),
-      Math.abs(candles[i].l - previousClose)
-    );
-    sum += tr;
-    count++;
-  }
-  return count ? sum / count : 0;
-}
-
-function readSettings() {
-  return {
-    capital: Math.max(1, number("capital", 25)),
-    allocation: Math.max(0.001, number("allocation", 25)),
-    leverage: Math.max(1, number("leverage", 10)),
-    levels: Math.min(500, Math.max(1, Math.floor(number("levels", 180)))),
-    multiplier: Math.max(1, number("multiplier", 1.015)),
-    threshold: Math.min(1, Math.max(0.01, number("threshold", 50) / 100)),
-    atrFactor: Math.max(0, number("atrFactor", 0.05)),
-    priceStop: Math.max(0, number("priceStop", 8) / 100),
-    accountStop: Math.max(0, number("accountStop", 15) / 100),
-    maker: Math.max(0, number("maker", 0.02) / 100),
-    taker: Math.max(0, number("taker", 0.05) / 100),
-    slippage: Math.max(0, number("slippage", 0.01) / 100),
-    atrPeriod: Math.max(1, Math.floor(number("atrPeriod", 14)))
-  };
-}
-
-function backtest(S) {
-  let balance = S.capital;
-  let position = 0;
-  let entry = 0;
-  let orders = [];
-  let cycle = null;
-  let rejected = 0;
-  let totalFills = 0;
-  let maxDrawdown = 0;
-  let peakEquity = S.capital;
-  const trades = [];
-
-  const equity = price => balance + position * (price - entry);
-
-  function closePosition(price, time, reason, takerFee = false) {
-    if (position <= 0) return;
-    const qty = position;
-    const pnl = qty * (price - entry);
-    const fee = qty * price * (takerFee ? S.taker : S.maker);
-    balance += pnl - fee;
-    if (cycle) {
-      cycle.pnl += pnl - fee;
-      cycle.fees += fee;
-      trades.push({
-        ...cycle,
-        t1: time,
-        entry,
-        exit: price,
-        status: reason
-      });
-    }
-    position = 0;
-    entry = 0;
-    cycle = null;
-    orders = [];
-  }
-
-  function armGrid(index) {
-    const price = candles[index].c;
-    const atr = atrAt(index, S.atrPeriod);
-    const step = Math.max((atr / price) * S.atrFactor, 0.0002);
-
-    let sum = 0;
-    for (let i = 0; i < S.levels; i++) sum += Math.pow(S.multiplier, i);
-    const baseSize = S.allocation / sum;
-    orders = [];
-
-    for (let i = 0; i < S.levels; i++) {
-      const levelPrice = price * (1 - step * (i + 1));
-      const qty = baseSize * Math.pow(S.multiplier, i);
-      if (levelPrice > 0 && Number.isFinite(qty)) {
-        orders.push({ price: levelPrice, qty, index: i });
-      }
-    }
-  }
-
-  for (let i = 1; i < candles.length; i++) {
-    const candle = candles[i];
-
-    // Aproximación del funding cada 8 horas, según el tiempo transcurrido.
-    if (position > 0 && i > 0) {
-      const previous = candles[i - 1].t;
-      const elapsed = Math.floor(candle.t / 28800000) - Math.floor(previous / 28800000);
-      if (elapsed > 0) {
-        const funding = position * candle.o * 0.0001 * elapsed;
-        balance -= funding;
-        if (cycle) {
-          cycle.pnl -= funding;
-          cycle.funding += funding;
-        }
-      }
-    }
-
-    // Stops evaluados de forma conservadora antes de posibles salidas en la vela.
-    if (position > 0) {
-      const accountStop = S.accountStop > 0 &&
-        equity(candle.l) <= S.capital * (1 - S.accountStop);
-      const priceStop = S.priceStop > 0 &&
-        candle.l <= entry * (1 - S.priceStop);
-
-      if (accountStop || priceStop) {
-        const stopPrice = Math.min(candle.o, entry * (1 - S.priceStop));
-        closePosition(Math.max(0.01, stopPrice * (1 - S.slippage)), candle.t,
-          accountStop ? "Stop de cuenta" : "Stop de precio", true);
-      }
-    }
-
-    if (position === 0 && orders.length === 0) armGrid(i);
-
-    if (position === 0 || orders.length > 0) {
-      // La grilla solo usa órdenes límite de compra.
-      const touched = orders
-        .filter(order => candle.l <= order.price)
-        .sort((a, b) => b.price - a.price);
-
-      for (const order of touched) {
-        if (!orders.includes(order)) continue;
-
-        const fee = order.qty * order.price * S.maker;
-        const nextPosition = position + order.qty;
-        const requiredMargin = nextPosition * order.price / S.leverage;
-        const availableEquity = equity(order.price);
-
-        if (requiredMargin + fee > availableEquity) {
-          rejected++;
-          orders = orders.filter(x => x !== order);
-          continue;
-        }
-
-        if (!cycle) {
-          cycle = { t0: candle.t, pnl: 0, fees: 0, funding: 0, fills: 0 };
-        }
-
-        entry = (position * entry + order.qty * order.price) / nextPosition;
-        position = nextPosition;
-        balance -= fee;
-        cycle.pnl -= fee;
-        cycle.fees += fee;
-        cycle.fills++;
-        totalFills++;
-        orders = orders.filter(x => x !== order);
-
-        const filled = S.levels - orders.length;
-        if (filled / S.levels >= S.threshold) {
-          orders = [];
-          // El objetivo de salida se procesa abajo si la vela alcanza el precio medio.
-          cycle.breakEvenActive = true;
-        }
-      }
-    }
-
-    if (position > 0 && cycle && cycle.breakEvenActive && candle.h >= entry) {
-      closePosition(entry, candle.t, "Break-even");
-    }
-
-    const markedPrice = candle.c;
-    const currentEquity = equity(markedPrice);
-    peakEquity = Math.max(peakEquity, currentEquity);
-    if (peakEquity > 0) {
-      maxDrawdown = Math.max(maxDrawdown, (peakEquity - currentEquity) / peakEquity);
-    }
-
-    if (position === 0 && orders.length === 0 && i < candles.length - 1) {
-      // La grilla se volverá a desplegar en la siguiente vela.
-    }
-  }
-
-  if (position > 0 && cycle) {
-    const last = candles[candles.length - 1];
-    cycle.pnl += position * (last.c - entry);
-    trades.push({
-      ...cycle,
-      t1: last.t,
-      entry,
-      exit: last.c,
-      status: "Abierto al final"
-    });
-  }
-
-  const finalEquity = equity(candles[candles.length - 1].c);
-  return {
-    trades,
-    finalEquity,
-    net: finalEquity - S.capital,
-    maxDrawdown,
-    rejected,
-    totalFills
-  };
-}
-
-function render(result, S) {
-  const cls = result.net >= 0 ? "gain" : "loss";
-  const items = [
-    ["Capital inicial", format(S.capital) + " USDT", ""],
-    ["Capital final", format(result.finalEquity) + " USDT", cls],
-    ["Resultado neto", format(result.net) + " USDT", cls],
-    ["Máx. drawdown", format(result.maxDrawdown * 100) + "%", ""],
-    ["Ciclos", String(result.trades.length), ""],
-    ["Órdenes ejecutadas", String(result.totalFills), ""],
-    ["Órdenes rechazadas por margen", String(result.rejected), ""]
-  ];
-
-  $("results").innerHTML = items.map(([label, value, color]) =>
-    `<div class="kpi"><span>${label}</span><strong class="${color}">${value}</strong></div>`
-  ).join("");
-
-  $("trades").querySelector("tbody").innerHTML = result.trades
-    .slice()
-    .reverse()
-    .map((trade, i) => {
-      const color = trade.pnl >= 0 ? "gain" : "loss";
-      return `<tr>
-        <td>${result.trades.length - i}</td>
-        <td>${formatTime(trade.t0)}</td>
-        <td>${formatTime(trade.t1)}</td>
-        <td>${trade.fills}</td>
-        <td>${format(trade.entry)}</td>
-        <td>${format(trade.exit)}</td>
-        <td class="${color}">${format(trade.pnl)}</td>
-        <td>${trade.status}</td>
-      </tr>`;
-    }).join("");
-
-  $("status").textContent =
-    "Backtest terminado. Es una simulación; los resultados no predicen el mercado.";
-}
-
-$("demo").addEventListener("click", () => {
-  try {
-    generateDemo();
-  } catch (error) {
-    $("status").textContent = error.message;
-  }
-});
-
-$("csv").addEventListener("change", async event => {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-
-  try {
-    const rows = parseCSV(await file.text());
-    setCandles(rows, file.name);
-    $("status").textContent = "CSV cargado.";
-  } catch (error) {
-    $("status").textContent = "Error: " + error.message;
-  }
-});
-
-$("run").addEventListener("click", () => {
-  if (candles.length < 10) {
-    $("status").textContent = "Primero cargá un CSV o generá velas de ejemplo.";
-    return;
-  }
-
-  try {
-    $("status").textContent = "Corriendo backtest…";
-    const settings = readSettings();
-    const result = backtest(settings);
-    render(result, settings);
-  } catch (error) {
-    $("status").textContent = "Error en el backtest: " + error.message;
-  }
-});
-
-generateDemo();
-</script>
+  </script>
 </body>
 </html>
