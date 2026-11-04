@@ -1,5 +1,9 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Banco de Pruebas Intradiario (Python Backend)</title>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Banco de Pruebas Intradiario</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
@@ -9,6 +13,7 @@
   --font-mono:'IBM Plex Mono',ui-monospace,monospace;
   --bg:#EDF0F4; --surface:#FFFFFF; --surface-2:#F3F5F8; --ink:#14202E; --ink-2:#4F6075; --line:#D5DCE5; --grid:#E4E9EF;
   --accent:#2744E0; --accent-ink:#FFFFFF; --gain:#0B8A5D; --gain-soft:#DAF1E6; --loss:#CB2C48; --loss-soft:#FBE1E6; --warn:#8F4D00; --warn-soft:#FFEFD2;
+  color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -17,83 +22,132 @@
   }
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--font-body);padding:20px max(16px,env(safe-area-inset-left,0px))}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--font-body);padding:20px max(16px,env(safe-area-inset-left,0px)) 40px}
 .wrap{max-width:1520px;margin:0 auto}
 h1{font:700 clamp(26px,4vw,38px)/1.05 var(--font-display);margin:0 0 8px}
 h2{font:600 11px/1 var(--font-body);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);margin:0 0 12px}
-.lede{margin:0;max-width:70ch;color:var(--ink-2)}
+.lede{margin:0;max-width:75ch;color:var(--ink-2)}
 .top{margin-bottom:18px}
-.app{display:grid;grid-template-columns:minmax(330px,440px) minmax(0,1fr);gap:18px;align-items:start}
+.app{display:grid;grid-template-columns:minmax(330px,460px) minmax(0,1fr);gap:18px;align-items:start}
 .col{display:flex;flex-direction:column;gap:14px;min-width:0}
 @media (max-width:980px){.app{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
 .hint{color:var(--ink-2);font-size:12.5px;margin:8px 0 0}
-.runbar{position:sticky;top:0;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:center}
-.runbar .status{flex:1;font-size:12.5px;color:var(--ink-2)}
+.runbar{position:sticky;top:0;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.runbar .status{flex:1;min-width:140px;font-size:12.5px;color:var(--ink-2)}
 .btn{font:600 13px/1 var(--font-body);border-radius:7px;padding:10px 14px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
 input,select,textarea{font:inherit;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+input[type=checkbox]{width:auto}
 label{font-size:12px;color:var(--ink-2);display:block;margin-bottom:4px}
 .seg{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:3px;margin-bottom:12px}
-.seg button{flex:1;padding:7px 6px;border:0;border-radius:6px;background:transparent;color:var(--ink-2);cursor:pointer}
-.seg button[aria-pressed=true]{background:var(--surface);color:var(--accent)}
+.seg button{flex:1;padding:7px 6px;border:0;border-radius:6px;background:transparent;color:var(--ink-2);cursor:pointer;font:inherit}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--accent);font-weight:600}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-textarea#code{font:12.5px/1.55 var(--font-mono);min-height:340px;resize:vertical;white-space:pre;background:var(--surface-2)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.row{display:flex;gap:10px;align-items:center;margin-top:10px}
+.row label{margin:0;display:flex;gap:6px;align-items:center}
+textarea#code{font:12.5px/1.55 var(--font-mono);min-height:360px;resize:vertical;white-space:pre;tab-size:4}
 .note{border-radius:8px;padding:10px 12px;font-size:13px;margin:0 0 12px;border:1px solid var(--line);background:var(--surface-2)}
 .note.err{background:var(--loss-soft);color:var(--loss)}
 .note.ok{background:var(--gain-soft);color:var(--gain)}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note pre{margin:6px 0 0;white-space:pre-wrap;font:12px/1.5 var(--font-mono)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
 .kpi .l{font-size:11px;text-transform:uppercase;color:var(--ink-2)}
-.kpi .v{font:500 22px/1.2 var(--font-mono);margin-top:6px}
+.kpi .v{font:500 21px/1.2 var(--font-mono);margin-top:6px}
 .pos{color:var(--gain)} .neg{color:var(--loss)}
 .chart{position:relative;margin:0}
 .chart canvas{display:block;width:100%;height:280px}
-pre.logs{margin:10px 0 0;max-height:260px;overflow:auto;font:12px/1.5 var(--font-mono);background:var(--surface-2);padding:10px;white-space:pre-wrap}
+pre.logs{margin:10px 0 0;max-height:260px;overflow:auto;font:12px/1.5 var(--font-mono);background:var(--surface-2);padding:10px;border-radius:6px;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font:12px var(--font-mono)}
+th,td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--ink-2);font-weight:500}
+th:first-child,td:first-child{text-align:left}
+.tscroll{max-height:280px;overflow:auto}
+summary{font-size:13px;cursor:pointer}
+code{font-family:var(--font-mono);font-size:12px}
 </style>
-
+</head>
+<body>
 <div class="wrap">
 <header class="top">
-  <h1>Banco de Pruebas Intradiario (Motor Python Local)</h1>
-  <p class="lede">Escribí tu estrategia en Python nativo. Se ejecutará directamente en tu backend local (http://localhost:8000).</p>
+  <h1>Banco de Pruebas Intradiario</h1>
+  <p class="lede">Escribí tu estrategia en Python y backtesteala con apalancamiento, comisiones, slippage y funding. Todo corre en tu navegador (Pyodide): no necesitás ningún servidor.</p>
 </header>
 
 <div class="app">
 <div class="col">
   <div class="runbar">
-    <button class="btn" id="btnRun" type="button">Ejecutar Backtest (Python)</button>
-    <span class="status" id="status">Conectado a backend Python</span>
+    <button class="btn" id="btnRun" type="button" disabled>Ejecutar backtest</button>
+    <button class="btn ghost" id="btnStop" type="button" hidden>Detener</button>
+    <span class="status" id="status">Cargando motor Python…</span>
   </div>
 
   <div class="panel">
     <h2>Datos</h2>
     <div class="seg" id="srcTabs">
-      <button type="button" data-src="demo" aria-pressed="true">Ejemplo</button>
+      <button type="button" data-src="binance" aria-pressed="true">Binance</button>
+      <button type="button" data-src="csv" aria-pressed="false">CSV</button>
+      <button type="button" data-src="demo" aria-pressed="false">Ejemplo</button>
     </div>
-    <p id="dataInfo">Cargando serie sintética...</p>
+    <div id="srcBinance">
+      <div class="grid3">
+        <div><label for="bSym">Símbolo</label><input id="bSym" value="SOLUSDT"></div>
+        <div><label for="bInt">Velas</label>
+          <select id="bInt"><option>1m</option><option selected>5m</option><option>15m</option><option>1h</option></select></div>
+        <div><label for="bDays">Días</label><input id="bDays" type="number" min="1" max="120" value="14"></div>
+      </div>
+      <div class="row"><button class="btn ghost" id="btnLoad" type="button">Descargar datos</button></div>
+    </div>
+    <div id="srcCsv" hidden>
+      <label for="csvFile">Archivo CSV (tiempo, open, high, low, close, volume)</label>
+      <input id="csvFile" type="file" accept=".csv,.txt">
+      <p class="hint">Tiempo en milisegundos, segundos o fecha ISO. Se aceptan separadores coma, punto y coma o tab, con o sin encabezado.</p>
+    </div>
+    <div id="srcDemo" hidden>
+      <div class="row" style="margin-top:0"><button class="btn ghost" id="btnDemo" type="button">Generar serie sintética</button></div>
+    </div>
+    <p class="hint" id="dataInfo">Sin datos todavía.</p>
   </div>
 
   <div class="panel">
     <h2>Estrategia en Python</h2>
-    <textarea id="code" spellcheck="false" autocomplete="off"># Estrategia de prueba en Python nativo
-def on_candle(c, api):
-    if api.position['qty'] == 0:
-        if api.rsi(14) < 35:
-            api.buy(1.0)
-            api.log("Compra efectuada en:", c['c'])
-    else:
-        if api.rsi(14) > 65:
-            api.close_all()
-            api.log("Venta efectuada en:", c['c'])
-</textarea>
+    <label for="exSel">Plantilla</label>
+    <select id="exSel" style="margin-bottom:10px">
+      <option value="rsi">RSI sobrevendido / sobrecomprado</option>
+      <option value="ema">Cruce de EMAs (largo y corto)</option>
+      <option value="ladder">Escalera SOL con TP</option>
+    </select>
+    <textarea id="code" spellcheck="false" autocomplete="off"></textarea>
+    <details style="margin-top:10px">
+      <summary>API disponible</summary>
+      <p class="hint" style="line-height:1.8">
+        <code>on_candle(c, api)</code> se llama en cada vela cerrada. <code>c</code> tiene <code>t o h l c v i</code>.<br>
+        <code>api.buy(qty)</code> / <code>api.sell(qty)</code> (qty en la moneda base, p. ej. SOL; sell abre cortos) · <code>api.close_all()</code><br>
+        <code>api.position</code> → <code>{'qty','side','entry','signed'}</code> · <code>api.equity</code> · <code>api.leverage</code> · <code>api.price</code><br>
+        <code>api.rsi(n) api.sma(n) api.ema(n) api.atr(n) api.highest(n) api.lowest(n)</code><br>
+        <code>api.close(k)</code> cierre de hace k velas · <code>api.state</code> dict persistente · <code>api.log(...)</code> o <code>print(...)</code><br>
+        Opcional: <code>def on_start(api)</code>. Las órdenes son a mercado y se ejecutan al cierre de la vela. Margen cruzado.
+      </p>
+    </details>
   </div>
 
   <div class="panel">
-    <h2>Cuenta</h2>
+    <h2>Cuenta y costos</h2>
     <div class="grid2">
-      <div><label for="sCap">Capital (USDT)</label><input id="sCap" type="number" value="1000"></div>
-      <div><label for="sLev">Apalancamiento (x)</label><input id="sLev" type="number" value="10"></div>
+      <div><label for="sCap">Capital (USDT)</label><input id="sCap" type="number" value="1000" min="1"></div>
+      <div><label for="sLev">Apalancamiento (x)</label><input id="sLev" type="number" value="10" min="1" step="1"></div>
+      <div><label for="sTaker">Comisión taker (%)</label><input id="sTaker" type="number" value="0.05" step="0.01"></div>
+      <div><label for="sSlip">Slippage (%)</label><input id="sSlip" type="number" value="0.01" step="0.01"></div>
+      <div><label for="sFund">Funding c/8h (%)</label><input id="sFund" type="number" value="0.01" step="0.005"></div>
+      <div><label for="sMmr">Margen de mantenimiento (%)</label><input id="sMmr" type="number" value="0.5" step="0.1"></div>
+      <div><label for="sTz">Zona horaria (min vs UTC)</label><input id="sTz" type="number" value="-180"></div>
     </div>
+    <div class="row"><label><input type="checkbox" id="sFlat"> Cerrar posición al fin de cada día</label></div>
   </div>
 </div>
 
@@ -106,80 +160,547 @@ def on_candle(c, api):
     <figure class="chart"><canvas id="cv-eq"></canvas></figure>
   </div>
 
+  <div class="panel">
+    <h2>Precio y operaciones</h2>
+    <figure class="chart"><canvas id="cv-px"></canvas></figure>
+  </div>
+
+  <details class="panel">
+    <summary>Últimas operaciones</summary>
+    <div class="tscroll"><table id="fills"><thead><tr><th>Fecha</th><th>Lado</th><th>Precio</th><th>Cantidad</th></tr></thead><tbody></tbody></table></div>
+  </details>
+
   <details class="panel" open>
-    <summary style="font-size:13px;cursor:pointer">Registro de logs (Python)</summary>
-    <pre class="logs" id="logs">Esperando ejecución...</pre>
+    <summary>Registro de logs</summary>
+    <pre class="logs" id="logs">Esperando ejecución…</pre>
   </details>
 </div>
 </div>
 </div>
 
+<script type="text/plain" id="engine">
+import json, math, io, contextlib, traceback
+
+NAN = float('nan')
+
+def _sma(x, n):
+    out = [NAN] * len(x); s = 0.0
+    for i, v in enumerate(x):
+        s += v
+        if i >= n: s -= x[i - n]
+        if i >= n - 1: out[i] = s / n
+    return out
+
+def _ema(x, n):
+    k = 2.0 / (n + 1); out = [NAN] * len(x); e = None
+    if len(x) < n: return out
+    for i, v in enumerate(x):
+        if i == n - 1:
+            e = sum(x[:n]) / n; out[i] = e
+        elif i >= n:
+            e = v * k + e * (1 - k); out[i] = e
+    return out
+
+def _rsi(x, n):
+    out = [NAN] * len(x)
+    if len(x) <= n: return out
+    g = l = 0.0
+    for i in range(1, n + 1):
+        d = x[i] - x[i - 1]; g += max(d, 0); l += max(-d, 0)
+    g /= n; l /= n
+    out[n] = 100.0 if l == 0 else 100 - 100 / (1 + g / l)
+    for i in range(n + 1, len(x)):
+        d = x[i] - x[i - 1]
+        g = (g * (n - 1) + max(d, 0)) / n
+        l = (l * (n - 1) + max(-d, 0)) / n
+        out[i] = 100.0 if l == 0 else 100 - 100 / (1 + g / l)
+    return out
+
+def _atr(h, l, c, n):
+    out = [NAN] * len(c)
+    if len(c) < n: return out
+    tr = [h[0] - l[0]] + [max(h[i] - l[i], abs(h[i] - c[i-1]), abs(l[i] - c[i-1])) for i in range(1, len(c))]
+    a = sum(tr[:n]) / n; out[n - 1] = a
+    for i in range(n, len(c)):
+        a = (a * (n - 1) + tr[i]) / n; out[i] = a
+    return out
+
+def _roll(x, n, fn):
+    out = [NAN] * len(x)
+    for i in range(n - 1, len(x)):
+        out[i] = fn(x[i - n + 1:i + 1])
+    return out
+
+class API:
+    def __init__(self, d, s):
+        self._d = d; self._s = s; self.i = 0
+        self.cash = float(s['capital']); self.pos = 0.0; self.entry = 0.0
+        self.leverage = float(s['leverage']); self.state = {}
+        self._cache = {}; self.logs = []; self.fills = []; self.pnls = []
+        self.fees = 0.0; self.liqs = 0; self._dropped = 0
+
+    @property
+    def price(self): return self._d['c'][self.i]
+    @property
+    def time(self): return self._d['t'][self.i]
+    @property
+    def index(self): return self.i
+    @property
+    def equity(self):
+        return self.cash + (self.pos * (self.price - self.entry) if self.pos else 0.0)
+    @property
+    def position(self):
+        side = 'long' if self.pos > 0 else ('short' if self.pos < 0 else None)
+        return {'qty': abs(self.pos), 'side': side, 'entry': self.entry, 'signed': self.pos}
+
+    def _ind(self, key, fn):
+        v = self._cache.get(key)
+        if v is None:
+            v = fn(); self._cache[key] = v
+        return v[self.i]
+
+    def rsi(self, n=14): return self._ind(('rsi', n), lambda: _rsi(self._d['c'], n))
+    def sma(self, n=20): return self._ind(('sma', n), lambda: _sma(self._d['c'], n))
+    def ema(self, n=20): return self._ind(('ema', n), lambda: _ema(self._d['c'], n))
+    def atr(self, n=14): return self._ind(('atr', n), lambda: _atr(self._d['h'], self._d['l'], self._d['c'], n))
+    def highest(self, n=20): return self._ind(('hi', n), lambda: _roll(self._d['h'], n, max))
+    def lowest(self, n=20): return self._ind(('lo', n), lambda: _roll(self._d['l'], n, min))
+    def close(self, k=0): return self._d['c'][max(self.i - int(k), 0)]
+    def high(self, k=0): return self._d['h'][max(self.i - int(k), 0)]
+    def low(self, k=0): return self._d['l'][max(self.i - int(k), 0)]
+
+    def log(self, *a):
+        if len(self.logs) >= 1500:
+            self._dropped += 1; return
+        self.logs.append([self.time, ' '.join(str(x) for x in a)])
+
+    def buy(self, qty): self._exec(abs(float(qty)))
+    def sell(self, qty): self._exec(-abs(float(qty)))
+    def close_all(self):
+        if self.pos: self._exec(-self.pos)
+
+    def _exec(self, q):
+        if q == 0 or q != q or abs(q) == float('inf'): return
+        s = self._s
+        sign = 1 if q > 0 else -1
+        px = self.price * (1 + sign * float(s['slip']) / 100.0)
+        new_pos = self.pos + q
+        if abs(new_pos) > abs(self.pos) + 1e-15:
+            max_abs = max(self.equity, 0) * self.leverage * 0.95 / px
+            if abs(new_pos) > max_abs:
+                new_pos = (1 if new_pos > 0 else -1) * max_abs
+                q = new_pos - self.pos
+                if abs(q) * px < 1e-6 or q * sign <= 0:
+                    self.log('Margen insuficiente, orden ignorada'); return
+        pnl = 0.0; closed = 0.0
+        if self.pos != 0 and q * self.pos < 0:
+            closed = min(abs(q), abs(self.pos))
+            pnl = closed * (px - self.entry) * (1 if self.pos > 0 else -1)
+            self.cash += pnl
+        if self.pos == 0 or q * self.pos > 0:
+            tot = abs(self.pos) + abs(q)
+            self.entry = (abs(self.pos) * self.entry + abs(q) * px) / tot
+        elif abs(q) > abs(self.pos):
+            self.entry = px
+        self.pos = new_pos
+        if abs(self.pos) < 1e-12:
+            self.pos = 0.0; self.entry = 0.0
+        fee = abs(q) * px * float(s['taker']) / 100.0
+        self.cash -= fee; self.fees += fee
+        if closed > 0: self.pnls.append(pnl - fee)
+        self.fills.append([self.i, sign, px, abs(q)])
+
+def run_backtest(data_json, settings_json, code):
+    out = {'fatal': None}
+    api = None
+    buf = io.StringIO()
+    try:
+        d = json.loads(data_json); s = json.loads(settings_json)
+        n = len(d['c'])
+        if n < 2: raise Exception('Se necesitan al menos 2 velas.')
+        api = API(d, s)
+        lev = api.leverage; mmr = float(s['mmr']) / 100.0
+        tz = float(s.get('tzOffsetMin', 0)); flat = bool(s.get('flatEod'))
+        fund = float(s['funding']) / 100.0
+        T = d['t']; H = d['h']; L = d['l']; C = d['c']
+        eq = []
+        ns = {'math': math, '__name__': 'strategy'}
+        with contextlib.redirect_stdout(buf):
+            exec(compile(code, '<estrategia>', 'exec'), ns)
+            fn = ns.get('on_candle')
+            if not callable(fn):
+                raise Exception('Tu código debe definir: def on_candle(c, api):')
+            st = ns.get('on_start')
+            if callable(st): st(api)
+            prev_f = None
+            for i in range(n):
+                api.i = i
+                # liquidación (margen cruzado)
+                if api.pos != 0:
+                    q = abs(api.pos); e = api.entry
+                    if api.pos > 0:
+                        p = (q * e - api.cash) / (q * (1 - mmr))
+                        hit = L[i] <= p
+                    else:
+                        p = (api.cash + q * e) / (q * (1 + mmr))
+                        hit = H[i] >= p
+                    if hit:
+                        api.liqs += 1
+                        api.log('LIQUIDACIÓN en', round(p, 4))
+                        api.fills.append([i, -1 if api.pos > 0 else 1, p, q])
+                        api.pnls.append(-api.cash)
+                        api.cash = 0.0; api.pos = 0.0; api.entry = 0.0
+                        eq.append(0.0)
+                        break
+                # funding cada 8h
+                fk = int(T[i] // 28800000)
+                if prev_f is not None and fk != prev_f and api.pos:
+                    api.cash -= api.pos * C[i] * fund
+                prev_f = fk
+                c = {'t': T[i], 'o': d['o'][i], 'h': H[i], 'l': L[i], 'c': C[i], 'v': d['v'][i], 'i': i}
+                fn(c, api)
+                if flat and api.pos and i < n - 1:
+                    if int((T[i] + tz * 60000) // 86400000) != int((T[i + 1] + tz * 60000) // 86400000):
+                        api.close_all()
+                e_now = api.equity
+                eq.append(e_now)
+                if e_now <= 0:
+                    api.log('Capital agotado, backtest detenido')
+                    break
+        for line in buf.getvalue().splitlines():
+            if len(api.logs) < 1500: api.logs.append([None, line])
+        cap = float(s['capital'])
+        final = eq[-1] if eq else cap
+        peak = cap; mdd = 0.0
+        for v in eq:
+            if v > peak: peak = v
+            if peak > 0:
+                dd = (peak - v) / peak
+                if dd > mdd: mdd = dd
+        wins = [p for p in api.pnls if p > 0]; losses = [p for p in api.pnls if p <= 0]
+        gl = -sum(losses)
+        out.update({
+            'eq': eq, 'fills': api.fills[-3000:], 'fillCount': len(api.fills),
+            'logs': api.logs, 'dropped': api._dropped,
+            'stats': {
+                'final': final, 'ret': (final / cap - 1) * 100, 'mdd': mdd * 100,
+                'trades': len(api.pnls), 'win': (len(wins) / len(api.pnls) * 100) if api.pnls else None,
+                'pf': (sum(wins) / gl) if gl > 0 else (None if not wins else float('inf')),
+                'fees': api.fees, 'liqs': api.liqs,
+                'open': api.pos != 0
+            }
+        })
+        if out['stats']['pf'] == float('inf'): out['stats']['pf'] = 999999
+    except BaseException as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        lines = ['Línea %s: %s' % (fs.lineno, fs.line) for fs in tb if fs.filename == '<estrategia>']
+        msg = '%s: %s' % (type(e).__name__, e)
+        if lines: msg += '\n' + '\n'.join(lines)
+        if api is not None: msg += '\n(en la vela %d)' % api.i
+        out['fatal'] = msg
+    return json.dumps(out)
+</script>
+
+<script type="text/plain" id="templates-rsi"># RSI: compra sobrevendido, cierra sobrecomprado
+def on_candle(c, api):
+    if api.position['qty'] == 0:
+        if api.rsi(14) < 35:
+            qty = api.equity * api.leverage * 0.5 / c['c']
+            api.buy(qty)
+            api.log("Compra a", round(c['c'], 3))
+    else:
+        if api.rsi(14) > 65:
+            api.close_all()
+            api.log("Cierre a", round(c['c'], 3))
+</script>
+<script type="text/plain" id="templates-ema"># Cruce de EMAs 9/21: largo cuando 9 > 21, corto cuando 9 < 21
+def on_candle(c, api):
+    fast, slow = api.ema(9), api.ema(21)
+    if fast != fast or slow != slow:   # todavía sin datos suficientes
+        return
+    qty = api.equity * api.leverage * 0.5 / c['c']
+    side = api.position['side']
+    if fast > slow and side != 'long':
+        api.close_all()
+        api.buy(qty)
+    elif fast < slow and side != 'short':
+        api.close_all()
+        api.sell(qty)
+</script>
+<script type="text/plain" id="templates-ladder"># Escalera SOL: compras escalonadas cada -1% con más cantidad abajo,
+# cierre con TP 2,5% sobre el precio medio y stop de emergencia a -8%
+def on_candle(c, api):
+    st = api.state
+    pos = api.position
+    px = c['c']
+    if pos['qty'] == 0:
+        st['ref'] = px
+        st['level'] = 1
+        base = api.equity * api.leverage * 0.04 / px
+        st['base'] = base
+        api.buy(base)
+        return
+    if px >= pos['entry'] * 1.025:
+        api.log("TP a", round(px, 3))
+        api.close_all()
+        return
+    if px <= st['ref'] * 0.92:
+        api.log("Stop de emergencia a", round(px, 3))
+        api.close_all()
+        return
+    lvl = st['level']
+    if lvl < 10 and px <= st['ref'] * (1 - 0.01 * lvl):
+        api.buy(st['base'] * (1.4 ** lvl))
+        st['level'] = lvl + 1
+</script>
+
 <script>
 const $ = id => document.getElementById(id);
-let currentData = null;
+const PYODIDE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+const STEP_MS = { '1m': 60000, '5m': 300000, '15m': 900000, '1h': 3600000 };
+let data = null, worker = null, ready = false, running = false, lastRes = null;
 
-function genDemo() {
-  const n = 200;
-  let p = 100;
-  const t = [], o = [], h = [], l = [], c = [], v = [];
-  const t0 = Date.now() - n * 300000;
-  for (let i = 0; i < n; i++) {
-    t.push(t0 + i * 300000);
-    let change = (Math.random() - 0.49) * 2;
-    let open = p;
-    let close = p + change;
-    let high = Math.max(open, close) + Math.random();
-    let low = Math.min(open, close) - Math.random();
-    o.push(open); h.push(high); l.push(low); c.push(close); v.push(100);
-    p = close;
-  }
-  currentData = { t, o, h, l, c, v };
-  $('dataInfo').textContent = `200 velas (Sintéticas) generadas.`;
+/* ---------- utilidades ---------- */
+const fmt = (x, d = 2) => Number(x).toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fdate = t => new Date(t).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+function setStatus(s) { $('status').textContent = s; }
+function note(kind, html) { const n = $('notes'); n.innerHTML = ''; if (!html) return; const p = document.createElement('p'); p.className = 'note ' + kind; if (typeof html === 'string') p.textContent = html; else p.append(...html); n.append(p); }
+function errNote(title, body) { const b = document.createElement('b'); b.textContent = title; const pre = document.createElement('pre'); pre.textContent = body || ''; note('err', [b, pre]); }
+function refreshRun() { $('btnRun').disabled = !(ready && data && !running); }
+
+/* ---------- plantillas ---------- */
+function loadTemplate(k) { $('code').value = document.getElementById('templates-' + k).textContent.replace(/^\n/, ''); try { localStorage.setItem('bp_code', $('code').value); } catch (e) {} }
+$('exSel').addEventListener('change', e => loadTemplate(e.target.value));
+let saved = null; try { saved = localStorage.getItem('bp_code'); } catch (e) {}
+if (saved) $('code').value = saved; else loadTemplate('rsi');
+$('code').addEventListener('input', () => { try { localStorage.setItem('bp_code', $('code').value); } catch (e) {} });
+$('code').addEventListener('keydown', e => {
+  if (e.key === 'Tab') { e.preventDefault(); const t = e.target, s = t.selectionStart; t.value = t.value.slice(0, s) + '    ' + t.value.slice(t.selectionEnd); t.selectionStart = t.selectionEnd = s + 4; }
+});
+
+/* ---------- pestañas de datos ---------- */
+document.querySelectorAll('#srcTabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#srcTabs button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  ['binance', 'csv', 'demo'].forEach(k => $('src' + k[0].toUpperCase() + k.slice(1)).hidden = (k !== b.dataset.src));
+}));
+
+function setData(d, label) {
+  data = d;
+  const n = d.t.length;
+  $('dataInfo').textContent = `${label}: ${n.toLocaleString('es-AR')} velas · ${fdate(d.t[0])} → ${fdate(d.t[n - 1])} · último precio ${fmt(d.c[n - 1], 3)}`;
+  refreshRun();
 }
 
-async function runPythonBacktest() {
-  $('status').textContent = "Enviando estrategia a Python...";
-  const payload = {
-    data: currentData,
-    settings: {
-      capital: parseFloat($('sCap').value),
-      leverage: parseFloat($('sLev').value),
-      maker: 0.02, taker: 0.05, slip: 0.01, funding: 0.01, mmr: 0.5, tzOffsetMin: -180, flatEod: false
-    },
-    code: $('code').value
-  };
-
-  try {
-    const response = await fetch('http://localhost:8000/backtest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const res = await response.json();
-    if (res.fatal) {
-      $('notes').innerHTML = `<p class="note err"><b>Error:</b> <pre>${res.fatal}</pre></p>`;
-      $('status').textContent = "Error en Python.";
-      return;
+/* ---------- Binance ---------- */
+async function fetchBinance(sym, interval, days) {
+  const ms = STEP_MS[interval];
+  const end = Date.now(); let start = end - days * 864e5;
+  const out = { t: [], o: [], h: [], l: [], c: [], v: [] };
+  const hosts = ['https://fapi.binance.com/fapi/v1/klines', 'https://data-api.binance.vision/api/v3/klines', 'https://api.binance.com/api/v3/klines'];
+  let host = null;
+  while (start < end) {
+    let rows = null;
+    for (const h of (host ? [host] : hosts)) {
+      try {
+        const r = await fetch(`${h}?symbol=${encodeURIComponent(sym)}&interval=${interval}&startTime=${start}&limit=1000`);
+        if (!r.ok) throw new Error(r.status);
+        rows = await r.json(); host = h; break;
+      } catch (e) { /* prueba el siguiente host */ }
     }
-
-    $('status').textContent = "Completado con éxito en Python.";
-    $('notes').innerHTML = `<p class="note ok"><b>Backtest finalizado en Python.</b> Fills: ${res.fillCount}</p>`;
-    
-    // Render de métricas básicas
-    const finalEq = res.eq[res.eq.length - 1];
-    $('kpis').innerHTML = `<div class="kpi"><div class="l">Capital Final</div><div class="v">${finalEq.toFixed(2)} USDT</div></div>`;
-    
-    // Render de Logs
-    $('logs').textContent = res.logs.map(l => `[${new Date(l.t).toLocaleTimeString()}] ${l.msg}`).join('\n') || "Sin logs de api.log(...)";
-
-  } catch (err) {
-    $('notes').innerHTML = `<p class="note err"><b>No se pudo conectar al servidor Python.</b> Asegurate de estar ejecutando 'python server.py'.</p>`;
-    $('status').textContent = "Servidor Python no disponible.";
+    if (!rows) throw new Error('No se pudo descargar de Binance (revisá el símbolo o tu conexión).');
+    if (!rows.length) break;
+    for (const k of rows) { out.t.push(+k[0]); out.o.push(+k[1]); out.h.push(+k[2]); out.l.push(+k[3]); out.c.push(+k[4]); out.v.push(+k[5]); }
+    start = +rows[rows.length - 1][0] + ms;
+    setStatus(`Descargando… ${out.t.length.toLocaleString('es-AR')} velas`);
+    if (rows.length < 1000) break;
   }
+  if (out.t.length < 2) throw new Error('Binance no devolvió velas para ese símbolo.');
+  return out;
+}
+$('btnLoad').addEventListener('click', async () => {
+  const b = $('btnLoad'); b.disabled = true;
+  try {
+    const days = Math.max(1, Math.min(120, +$('bDays').value || 14));
+    const d = await fetchBinance($('bSym').value.trim().toUpperCase() || 'SOLUSDT', $('bInt').value, days);
+    setData(d, 'Binance ' + ($('bSym').value.trim().toUpperCase()));
+    setStatus(ready ? 'Listo para ejecutar.' : 'Cargando motor Python…');
+  } catch (e) { errNote('Error al descargar datos', e.message); setStatus('Falló la descarga.'); }
+  b.disabled = false;
+});
+
+/* ---------- CSV ---------- */
+function parseTime(v) {
+  v = String(v).trim().replace(/^"|"$/g, '');
+  if (/^\d+(\.\d+)?$/.test(v)) { const x = +v; return x > 1e11 ? x : x * 1000; }
+  const t = Date.parse(v.replace(' ', 'T')); return isNaN(t) ? NaN : t;
+}
+$('csvFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const txt = await f.text();
+    const d = { t: [], o: [], h: [], l: [], c: [], v: [] };
+    for (const line of txt.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      const p = line.split(/[,;\t]/);
+      if (p.length < 5) continue;
+      const t = parseTime(p[0]); const nums = p.slice(1, 6).map(Number);
+      if (isNaN(t) || nums.slice(0, 4).some(isNaN)) continue;
+      d.t.push(t); d.o.push(nums[0]); d.h.push(nums[1]); d.l.push(nums[2]); d.c.push(nums[3]); d.v.push(isNaN(nums[4]) ? 0 : nums[4]);
+    }
+    if (d.t.length < 2) throw new Error('No se pudieron leer velas. Formato esperado: tiempo,open,high,low,close,volume');
+    const idx = d.t.map((_, i) => i).sort((a, b) => d.t[a] - d.t[b]);
+    const s = {}; for (const k of Object.keys(d)) s[k] = idx.map(i => d[k][i]);
+    setData(s, 'CSV ' + f.name); note('', '');
+  } catch (err) { errNote('Error leyendo el CSV', err.message); }
+});
+
+/* ---------- datos sintéticos ---------- */
+function genDemo() {
+  let seed = 12345; const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const n = 4000, step = 300000, t0 = Date.now() - n * step; let p = 150;
+  const d = { t: [], o: [], h: [], l: [], c: [], v: [] };
+  for (let i = 0; i < n; i++) {
+    const drift = Math.sin(i / 300) * 0.04;
+    const ch = (rnd() - 0.5 + drift) * 0.9;
+    const o = p, c = Math.max(1, p + ch);
+    d.t.push(t0 + i * step); d.o.push(o); d.c.push(c);
+    d.h.push(Math.max(o, c) + rnd() * 0.4); d.l.push(Math.min(o, c) - rnd() * 0.4); d.v.push(100 + rnd() * 50);
+    p = c;
+  }
+  setData(d, 'Sintéticos');
+}
+$('btnDemo').addEventListener('click', genDemo);
+
+/* ---------- worker de Python ---------- */
+function startWorker() {
+  ready = false; refreshRun(); setStatus('Cargando motor Python… (la primera vez tarda unos segundos)');
+  const src = `
+    importScripts('${PYODIDE}pyodide.js');
+    let py;
+    onmessage = async e => {
+      const m = e.data;
+      try {
+        if (m.type === 'init') {
+          py = await loadPyodide({ indexURL: '${PYODIDE}' });
+          py.runPython(m.engine);
+          postMessage({ type: 'ready' });
+        } else if (m.type === 'run') {
+          const fn = py.globals.get('run_backtest');
+          const out = fn(m.data, m.settings, m.code);
+          fn.destroy();
+          postMessage({ type: 'result', out });
+        }
+      } catch (err) { postMessage({ type: 'error', msg: String(err) }); }
+    };`;
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  worker.onmessage = e => {
+    const m = e.data;
+    if (m.type === 'ready') { ready = true; setStatus(data ? 'Listo para ejecutar.' : 'Motor listo. Cargá datos para empezar.'); refreshRun(); }
+    else if (m.type === 'result') { running = false; $('btnStop').hidden = true; refreshRun(); render(JSON.parse(m.out)); }
+    else if (m.type === 'error') { running = false; $('btnStop').hidden = true; errNote('Error del motor Python', m.msg); setStatus('Error en Python.'); refreshRun(); }
+  };
+  worker.onerror = e => { errNote('No se pudo iniciar Python', 'Revisá tu conexión (se descarga Pyodide desde jsdelivr). ' + (e.message || '')); setStatus('Motor Python no disponible.'); };
+  worker.postMessage({ type: 'init', engine: $('engine').textContent });
 }
 
-$('btnRun').addEventListener('click', runPythonBacktest);
+$('btnRun').addEventListener('click', () => {
+  if (!ready || !data || running) return;
+  const num = (id, d) => { const v = parseFloat($(id).value); return isNaN(v) ? d : v; };
+  const settings = {
+    capital: Math.max(1, num('sCap', 1000)), leverage: Math.max(1, num('sLev', 1)),
+    taker: Math.max(0, num('sTaker', 0.05)), slip: Math.max(0, num('sSlip', 0)),
+    funding: num('sFund', 0), mmr: Math.max(0, num('sMmr', 0.5)),
+    tzOffsetMin: num('sTz', 0), flatEod: $('sFlat').checked
+  };
+  running = true; refreshRun(); $('btnStop').hidden = false; note('', ''); setStatus('Ejecutando estrategia en Python…');
+  worker.postMessage({ type: 'run', data: JSON.stringify(data), settings: JSON.stringify(settings), code: $('code').value });
+});
+$('btnStop').addEventListener('click', () => {
+  worker.terminate(); running = false; $('btnStop').hidden = true;
+  note('warn', 'Ejecución detenida. Reiniciando motor Python…'); startWorker();
+});
+
+/* ---------- render ---------- */
+function kpi(l, v, cls) { return `<div class="kpi"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`; }
+function render(res) {
+  lastRes = res;
+  if (res.fatal) { errNote('Error en tu estrategia', res.fatal); setStatus('Error en la estrategia.'); return; }
+  const s = res.stats;
+  setStatus('Completado.');
+  const extra = res.stats.liqs ? ' · ⚠ cuenta liquidada' : '';
+  note(s.liqs ? 'warn' : 'ok', `Backtest finalizado. ${res.fillCount} operaciones${s.open ? ' (queda una posición abierta, valuada a mercado)' : ''}${extra}.`);
+  $('kpis').innerHTML =
+    kpi('Capital final', fmt(s.final) + ' USDT', s.ret >= 0 ? 'pos' : 'neg') +
+    kpi('Retorno', (s.ret >= 0 ? '+' : '') + fmt(s.ret) + '%', s.ret >= 0 ? 'pos' : 'neg') +
+    kpi('Drawdown máx.', '-' + fmt(s.mdd) + '%', 'neg') +
+    kpi('Cierres', s.trades) +
+    kpi('Acierto', s.win == null ? '—' : fmt(s.win, 1) + '%') +
+    kpi('Profit factor', s.pf == null ? '—' : (s.pf >= 999999 ? '∞' : fmt(s.pf))) +
+    kpi('Comisiones', fmt(s.fees) + ' USDT') +
+    kpi('Liquidaciones', s.liqs, s.liqs ? 'neg' : '');
+  const lg = res.logs.map(l => (l[0] ? `[${fdate(l[0])}] ` : '') + l[1]);
+  if (res.dropped) lg.push(`… ${res.dropped} logs más omitidos`);
+  $('logs').textContent = lg.join('\n') || 'Sin logs (usá api.log(...) o print(...)).';
+  const tb = document.querySelector('#fills tbody'); tb.innerHTML = '';
+  res.fills.slice(-100).reverse().forEach(f => {
+    const tr = document.createElement('tr');
+    [fdate(data.t[f[0]]), f[1] > 0 ? 'Compra' : 'Venta', fmt(f[2], 3), fmt(f[3], 3)].forEach((x, i) => { const td = document.createElement('td'); td.textContent = x; if (i === 1) td.className = f[1] > 0 ? 'pos' : 'neg'; tr.append(td); });
+    tb.append(tr);
+  });
+  draw();
+}
+
+/* ---------- gráficos ---------- */
+function chart(cv, ys, ts, o) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const cs = getComputedStyle(document.documentElement), col = n => cs.getPropertyValue(n).trim();
+  const L = 58, R = 10, T = 8, B = 22, n = ys.length;
+  if (n < 2) return;
+  let mn = Infinity, mx = -Infinity;
+  for (const v of ys) { if (v < mn) mn = v; if (v > mx) mx = v; }
+  if (o.base != null) { mn = Math.min(mn, o.base); mx = Math.max(mx, o.base); }
+  if (mx === mn) { mx += 1; mn -= 1; }
+  const pad = (mx - mn) * 0.06; mn -= pad; mx += pad;
+  const X = i => L + (w - L - R) * i / (n - 1), Y = v => T + (h - T - B) * (1 - (v - mn) / (mx - mn));
+  g.font = '11px ' + (col('--font-mono') || 'monospace'); g.fillStyle = col('--ink-2'); g.strokeStyle = col('--grid'); g.lineWidth = 1;
+  for (let k = 0; k <= 4; k++) {
+    const v = mn + (mx - mn) * k / 4, y = Y(v);
+    g.beginPath(); g.moveTo(L, y); g.lineTo(w - R, y); g.stroke();
+    g.textAlign = 'right'; g.fillText(fmt(v, v > 1000 ? 0 : 2), L - 6, y + 4);
+  }
+  g.textAlign = 'center';
+  for (let k = 0; k <= 3; k++) { const i = Math.round((n - 1) * k / 3); g.fillText(fdate(ts[i]), Math.min(Math.max(X(i), L + 30), w - R - 30), h - 6); }
+  if (o.base != null) { g.setLineDash([4, 4]); g.strokeStyle = col('--ink-2'); g.beginPath(); g.moveTo(L, Y(o.base)); g.lineTo(w - R, Y(o.base)); g.stroke(); g.setLineDash([]); }
+  const stride = Math.max(1, Math.floor(n / ((w - L - R) * 1.5)));
+  g.beginPath();
+  for (let i = 0; i < n; i += stride) { i === 0 ? g.moveTo(X(i), Y(ys[i])) : g.lineTo(X(i), Y(ys[i])); }
+  g.lineTo(X(n - 1), Y(ys[n - 1]));
+  g.strokeStyle = col('--accent'); g.lineWidth = 1.6; g.stroke();
+  if (o.fill) { g.lineTo(X(n - 1), h - B); g.lineTo(L, h - B); g.closePath(); g.globalAlpha = .08; g.fillStyle = col('--accent'); g.fill(); g.globalAlpha = 1; }
+  if (o.marks) for (const m of o.marks) {
+    if (m[0] >= n) continue;
+    const x = X(m[0]), y = Y(m[2]), up = m[1] > 0;
+    g.fillStyle = up ? col('--gain') : col('--loss');
+    g.beginPath();
+    if (up) { g.moveTo(x, y - 1); g.lineTo(x - 4, y + 7); g.lineTo(x + 4, y + 7); }
+    else { g.moveTo(x, y + 1); g.lineTo(x - 4, y - 7); g.lineTo(x + 4, y - 7); }
+    g.closePath(); g.fill();
+  }
+}
+function draw() {
+  if (!lastRes || lastRes.fatal || !data) return;
+  const eq = lastRes.eq, ts = data.t.slice(0, eq.length);
+  chart($('cv-eq'), eq, ts, { base: +$('sCap').value || 1000, fill: true });
+  chart($('cv-px'), data.c.slice(0, eq.length), ts, { marks: lastRes.fills.filter(f => f[0] < eq.length) });
+}
+window.addEventListener('resize', draw);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+
+/* ---------- inicio ---------- */
+startWorker();
 genDemo();
 </script>
-</body></html>
+</body>
+</html>
