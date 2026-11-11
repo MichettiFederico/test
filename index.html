@@ -121,7 +121,7 @@ code{font-family:var(--font-mono);font-size:12px}
     <details style="margin-top:10px">
       <summary>API disponible</summary>
       <p class="hint" style="line-height:1.8">
-        <code>on_candle(c, api)</code> se llama en cada vela cerrada. <code>c</code> tiene <code>t o h l c v i</code>.<br>
+        <code>on_candle(c, api)</code> se llama en cada vela cerrada. <code>c</code> tiene <code>t o h l c v i</code> y <code>tb</code> (volumen comprador taker; solo con datos de Binance, si no es <code>None</code>).<br>
         <code>api.buy(qty)</code> / <code>api.sell(qty)</code> (qty en la moneda base, p. ej. SOL; sell abre cortos) · <code>api.close_all()</code><br>
         <code>api.position</code> → <code>{'qty','side','entry','signed'}</code> · <code>api.equity</code> · <code>api.leverage</code> · <code>api.price</code><br>
         <code>api.rsi(n) api.sma(n) api.ema(n) api.atr(n) api.highest(n) api.lowest(n)</code><br>
@@ -346,7 +346,7 @@ def run_backtest(data_json, settings_json, code):
                 if prev_f is not None and fk != prev_f and api.pos:
                     api.cash -= api.pos * C[i] * fund
                 prev_f = fk
-                c = {'t': T[i], 'o': d['o'][i], 'h': H[i], 'l': L[i], 'c': C[i], 'v': d['v'][i], 'i': i}
+                c = {'t': T[i], 'o': d['o'][i], 'h': H[i], 'l': L[i], 'c': C[i], 'v': d['v'][i], 'tb': (d['tb'][i] if 'tb' in d else None), 'i': i}
                 fn(c, api)
                 if flat and api.pos and i < n - 1:
                     if int((T[i] + tz * 60000) // 86400000) != int((T[i + 1] + tz * 60000) // 86400000):
@@ -435,7 +435,7 @@ function setData(d, label) {
 async function fetchBinance(sym, interval, days) {
   const ms = STEP_MS[interval];
   const end = Date.now(); let start = end - days * 864e5;
-  const out = { t: [], o: [], h: [], l: [], c: [], v: [] };
+  const out = { t: [], o: [], h: [], l: [], c: [], v: [], tb: [] };
   const hosts = ['https://fapi.binance.com/fapi/v1/klines', 'https://data-api.binance.vision/api/v3/klines', 'https://api.binance.com/api/v3/klines'];
   let host = null;
   while (start < end) {
@@ -449,7 +449,7 @@ async function fetchBinance(sym, interval, days) {
     }
     if (!rows) throw new Error('No se pudo descargar de Binance (revisá el símbolo o tu conexión).');
     if (!rows.length) break;
-    for (const k of rows) { out.t.push(+k[0]); out.o.push(+k[1]); out.h.push(+k[2]); out.l.push(+k[3]); out.c.push(+k[4]); out.v.push(+k[5]); }
+    for (const k of rows) { out.t.push(+k[0]); out.o.push(+k[1]); out.h.push(+k[2]); out.l.push(+k[3]); out.c.push(+k[4]); out.v.push(+k[5]); out.tb.push(+k[9]); }
     start = +rows[rows.length - 1][0] + ms;
     setStatus(`Descargando… ${out.t.length.toLocaleString('es-AR')} velas`);
     if (rows.length < 1000) break;
