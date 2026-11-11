@@ -49,7 +49,6 @@ label{font-size:12px;color:var(--ink-2);display:block;margin-bottom:4px}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .row{display:flex;gap:10px;align-items:center;margin-top:10px}
 .row label{margin:0;display:flex;gap:6px;align-items:center}
-textarea#code{font:12.5px/1.55 var(--font-mono);min-height:360px;resize:vertical;white-space:pre;tab-size:4}
 .note{border-radius:8px;padding:10px 12px;font-size:13px;margin:0 0 12px;border:1px solid var(--line);background:var(--surface-2)}
 .note.err{background:var(--loss-soft);color:var(--loss)}
 .note.ok{background:var(--gain-soft);color:var(--gain)}
@@ -76,7 +75,7 @@ code{font-family:var(--font-mono);font-size:12px}
 <div class="wrap">
 <header class="top">
   <h1>Banco de Pruebas Intradiario</h1>
-  <p class="lede">Escribí tu estrategia en Python y backtesteala con apalancamiento, comisiones, slippage y funding. Todo corre en tu navegador (Pyodide): no necesitás ningún servidor.</p>
+  <p class="lede">Subí tu estrategia (.py), descargá las velas y backtesteala con apalancamiento, comisiones, slippage y funding. Todo corre en tu navegador (Pyodide): no necesitás ningún servidor.</p>
 </header>
 
 <div class="app">
@@ -116,13 +115,9 @@ code{font-family:var(--font-mono);font-size:12px}
 
   <div class="panel">
     <h2>Estrategia en Python</h2>
-    <label for="exSel">Plantilla</label>
-    <select id="exSel" style="margin-bottom:10px">
-      <option value="rsi">RSI sobrevendido / sobrecomprado</option>
-      <option value="ema">Cruce de EMAs (largo y corto)</option>
-      <option value="ladder">Escalera SOL con TP</option>
-    </select>
-    <textarea id="code" spellcheck="false" autocomplete="off"></textarea>
+    <label for="pyFile">Archivo .py</label>
+    <input id="pyFile" type="file" accept=".py">
+    <p class="hint" id="pyInfo">Ningún archivo cargado.</p>
     <details style="margin-top:10px">
       <summary>API disponible</summary>
       <p class="hint" style="line-height:1.8">
@@ -131,23 +126,11 @@ code{font-family:var(--font-mono);font-size:12px}
         <code>api.position</code> → <code>{'qty','side','entry','signed'}</code> · <code>api.equity</code> · <code>api.leverage</code> · <code>api.price</code><br>
         <code>api.rsi(n) api.sma(n) api.ema(n) api.atr(n) api.highest(n) api.lowest(n)</code><br>
         <code>api.close(k)</code> cierre de hace k velas · <code>api.state</code> dict persistente · <code>api.log(...)</code> o <code>print(...)</code><br>
-        Opcional: <code>def on_start(api)</code>. Las órdenes son a mercado y se ejecutan al cierre de la vela. Margen cruzado.
+        Opcional: <code>def on_start(api)</code>. Las órdenes son a mercado y se ejecutan al cierre de la vela. Margen cruzado.<br>
+        Parámetros opcionales a nivel módulo en tu .py (si no los definís se usan los valores por defecto):<br>
+        <code>CAPITAL = 1000</code> · <code>LEVERAGE = 10</code> · <code>TAKER_FEE = 0.05</code> (%) · <code>SLIPPAGE = 0.01</code> (%) · <code>FUNDING = 0.01</code> (% c/8h) · <code>MMR = 0.5</code> (%) · <code>TZ_OFFSET_MIN = -180</code> · <code>FLAT_EOD = False</code>
       </p>
     </details>
-  </div>
-
-  <div class="panel">
-    <h2>Cuenta y costos</h2>
-    <div class="grid2">
-      <div><label for="sCap">Capital (USDT)</label><input id="sCap" type="number" value="1000" min="1"></div>
-      <div><label for="sLev">Apalancamiento (x)</label><input id="sLev" type="number" value="10" min="1" step="1"></div>
-      <div><label for="sTaker">Comisión taker (%)</label><input id="sTaker" type="number" value="0.05" step="0.01"></div>
-      <div><label for="sSlip">Slippage (%)</label><input id="sSlip" type="number" value="0.01" step="0.01"></div>
-      <div><label for="sFund">Funding c/8h (%)</label><input id="sFund" type="number" value="0.01" step="0.005"></div>
-      <div><label for="sMmr">Margen de mantenimiento (%)</label><input id="sMmr" type="number" value="0.5" step="0.1"></div>
-      <div><label for="sTz">Zona horaria (min vs UTC)</label><input id="sTz" type="number" value="-180"></div>
-    </div>
-    <div class="row"><label><input type="checkbox" id="sFlat"> Cerrar posición al fin de cada día</label></div>
   </div>
 </div>
 
@@ -318,18 +301,24 @@ def run_backtest(data_json, settings_json, code):
         d = json.loads(data_json); s = json.loads(settings_json)
         n = len(d['c'])
         if n < 2: raise Exception('Se necesitan al menos 2 velas.')
-        api = API(d, s)
-        lev = api.leverage; mmr = float(s['mmr']) / 100.0
-        tz = float(s.get('tzOffsetMin', 0)); flat = bool(s.get('flatEod'))
-        fund = float(s['funding']) / 100.0
-        T = d['t']; H = d['h']; L = d['l']; C = d['c']
-        eq = []
         ns = {'math': math, '__name__': 'strategy'}
         with contextlib.redirect_stdout(buf):
             exec(compile(code, '<estrategia>', 'exec'), ns)
             fn = ns.get('on_candle')
             if not callable(fn):
                 raise Exception('Tu código debe definir: def on_candle(c, api):')
+            for key, name in (('capital', 'CAPITAL'), ('leverage', 'LEVERAGE'), ('taker', 'TAKER_FEE'),
+                              ('slip', 'SLIPPAGE'), ('funding', 'FUNDING'), ('mmr', 'MMR'),
+                              ('tzOffsetMin', 'TZ_OFFSET_MIN'), ('flatEod', 'FLAT_EOD')):
+                if name in ns: s[key] = ns[name]
+            s['capital'] = max(float(s['capital']), 1.0)
+            s['leverage'] = max(float(s['leverage']), 1.0)
+            api = API(d, s)
+            lev = api.leverage; mmr = float(s['mmr']) / 100.0
+            tz = float(s.get('tzOffsetMin', 0)); flat = bool(s.get('flatEod'))
+            fund = float(s['funding']) / 100.0
+            T = d['t']; H = d['h']; L = d['l']; C = d['c']
+            eq = []
             st = ns.get('on_start')
             if callable(st): st(api)
             prev_f = None
@@ -380,7 +369,7 @@ def run_backtest(data_json, settings_json, code):
         wins = [p for p in api.pnls if p > 0]; losses = [p for p in api.pnls if p <= 0]
         gl = -sum(losses)
         out.update({
-            'eq': eq, 'fills': api.fills[-3000:], 'fillCount': len(api.fills),
+            'cap': cap, 'eq': eq, 'fills': api.fills[-3000:], 'fillCount': len(api.fills),
             'logs': api.logs, 'dropped': api._dropped,
             'stats': {
                 'final': final, 'ret': (final / cap - 1) * 100, 'mdd': mdd * 100,
@@ -401,58 +390,6 @@ def run_backtest(data_json, settings_json, code):
     return json.dumps(out)
 </script>
 
-<script type="text/plain" id="templates-rsi"># RSI: compra sobrevendido, cierra sobrecomprado
-def on_candle(c, api):
-    if api.position['qty'] == 0:
-        if api.rsi(14) < 35:
-            qty = api.equity * api.leverage * 0.5 / c['c']
-            api.buy(qty)
-            api.log("Compra a", round(c['c'], 3))
-    else:
-        if api.rsi(14) > 65:
-            api.close_all()
-            api.log("Cierre a", round(c['c'], 3))
-</script>
-<script type="text/plain" id="templates-ema"># Cruce de EMAs 9/21: largo cuando 9 > 21, corto cuando 9 < 21
-def on_candle(c, api):
-    fast, slow = api.ema(9), api.ema(21)
-    if fast != fast or slow != slow:   # todavía sin datos suficientes
-        return
-    qty = api.equity * api.leverage * 0.5 / c['c']
-    side = api.position['side']
-    if fast > slow and side != 'long':
-        api.close_all()
-        api.buy(qty)
-    elif fast < slow and side != 'short':
-        api.close_all()
-        api.sell(qty)
-</script>
-<script type="text/plain" id="templates-ladder"># Escalera SOL: compras escalonadas cada -1% con más cantidad abajo,
-# cierre con TP 2,5% sobre el precio medio y stop de emergencia a -8%
-def on_candle(c, api):
-    st = api.state
-    pos = api.position
-    px = c['c']
-    if pos['qty'] == 0:
-        st['ref'] = px
-        st['level'] = 1
-        base = api.equity * api.leverage * 0.04 / px
-        st['base'] = base
-        api.buy(base)
-        return
-    if px >= pos['entry'] * 1.025:
-        api.log("TP a", round(px, 3))
-        api.close_all()
-        return
-    if px <= st['ref'] * 0.92:
-        api.log("Stop de emergencia a", round(px, 3))
-        api.close_all()
-        return
-    lvl = st['level']
-    if lvl < 10 and px <= st['ref'] * (1 - 0.01 * lvl):
-        api.buy(st['base'] * (1.4 ** lvl))
-        st['level'] = lvl + 1
-</script>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -466,16 +403,19 @@ const fdate = t => new Date(t).toLocaleString('es-AR', { day: '2-digit', month: 
 function setStatus(s) { $('status').textContent = s; }
 function note(kind, html) { const n = $('notes'); n.innerHTML = ''; if (!html) return; const p = document.createElement('p'); p.className = 'note ' + kind; if (typeof html === 'string') p.textContent = html; else p.append(...html); n.append(p); }
 function errNote(title, body) { const b = document.createElement('b'); b.textContent = title; const pre = document.createElement('pre'); pre.textContent = body || ''; note('err', [b, pre]); }
-function refreshRun() { $('btnRun').disabled = !(ready && data && !running); }
+function refreshRun() { $('btnRun').disabled = !(ready && data && strategyCode && !running); }
 
-/* ---------- plantillas ---------- */
-function loadTemplate(k) { $('code').value = document.getElementById('templates-' + k).textContent.replace(/^\n/, ''); try { localStorage.setItem('bp_code', $('code').value); } catch (e) {} }
-$('exSel').addEventListener('change', e => loadTemplate(e.target.value));
-let saved = null; try { saved = localStorage.getItem('bp_code'); } catch (e) {}
-if (saved) $('code').value = saved; else loadTemplate('rsi');
-$('code').addEventListener('input', () => { try { localStorage.setItem('bp_code', $('code').value); } catch (e) {} });
-$('code').addEventListener('keydown', e => {
-  if (e.key === 'Tab') { e.preventDefault(); const t = e.target, s = t.selectionStart; t.value = t.value.slice(0, s) + '    ' + t.value.slice(t.selectionEnd); t.selectionStart = t.selectionEnd = s + 4; }
+/* ---------- archivo .py ---------- */
+let strategyCode = null;
+$('pyFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  if (!/\.py$/i.test(f.name)) { strategyCode = null; $('pyInfo').textContent = 'Solo se aceptan archivos .py'; e.target.value = ''; refreshRun(); return; }
+  try {
+    strategyCode = await f.text();
+    $('pyInfo').textContent = `${f.name} · ${strategyCode.split(/\r?\n/).length} líneas`;
+    note('', '');
+  } catch (err) { strategyCode = null; errNote('Error leyendo el archivo', err.message); }
+  refreshRun();
 });
 
 /* ---------- pestañas de datos ---------- */
@@ -604,16 +544,10 @@ function startWorker() {
 }
 
 $('btnRun').addEventListener('click', () => {
-  if (!ready || !data || running) return;
-  const num = (id, d) => { const v = parseFloat($(id).value); return isNaN(v) ? d : v; };
-  const settings = {
-    capital: Math.max(1, num('sCap', 1000)), leverage: Math.max(1, num('sLev', 1)),
-    taker: Math.max(0, num('sTaker', 0.05)), slip: Math.max(0, num('sSlip', 0)),
-    funding: num('sFund', 0), mmr: Math.max(0, num('sMmr', 0.5)),
-    tzOffsetMin: num('sTz', 0), flatEod: $('sFlat').checked
-  };
+  if (!ready || !data || !strategyCode || running) return;
+  const settings = { capital: 1000, leverage: 10, taker: 0.05, slip: 0.01, funding: 0.01, mmr: 0.5, tzOffsetMin: -180, flatEod: false };
   running = true; refreshRun(); $('btnStop').hidden = false; note('', ''); setStatus('Ejecutando estrategia en Python…');
-  worker.postMessage({ type: 'run', data: JSON.stringify(data), settings: JSON.stringify(settings), code: $('code').value });
+  worker.postMessage({ type: 'run', data: JSON.stringify(data), settings: JSON.stringify(settings), code: strategyCode });
 });
 $('btnStop').addEventListener('click', () => {
   worker.terminate(); running = false; $('btnStop').hidden = true;
@@ -692,7 +626,7 @@ function chart(cv, ys, ts, o) {
 function draw() {
   if (!lastRes || lastRes.fatal || !data) return;
   const eq = lastRes.eq, ts = data.t.slice(0, eq.length);
-  chart($('cv-eq'), eq, ts, { base: +$('sCap').value || 1000, fill: true });
+  chart($('cv-eq'), eq, ts, { base: lastRes.cap, fill: true });
   chart($('cv-px'), data.c.slice(0, eq.length), ts, { marks: lastRes.fills.filter(f => f[0] < eq.length) });
 }
 window.addEventListener('resize', draw);
