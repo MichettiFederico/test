@@ -1,0 +1,439 @@
+# TSF bot: aviso por mail cuando marca COMPRA o VENTA (gratis)
+
+Corre solo en GitHub Actions cada ~10 minutos. Baja las velas de Binance, calcula el mismo puntaje que tu
+indicador (`PINE_2026`) y te manda un mail cuando una vela **cierra** con señal.
+
+## Puesta en marcha (unos 10 minutos)
+
+### 1) Contraseña de aplicación de Gmail
+1. En tu cuenta de Google activá la **verificación en 2 pasos** (si no la tenés).
+2. Entrá a https://myaccount.google.com/apppasswords y creá una contraseña para "TSF bot".
+3. Copiá los 16 caracteres (sin espacios). Es distinta de tu contraseña normal y se puede borrar cuando quieras.
+
+### 2) Repositorio en GitHub
+1. Creá una cuenta en https://github.com si no tenés.
+2. Creá un repositorio nuevo, **público** (así Actions es gratis sin límite; los datos sensibles van en "Secrets", no se ven).
+3. Subí **todo el contenido de esta carpeta** respetando las carpetas: `bot/` y `.github/workflows/`.
+   - Si la carpeta `.github` no te aparece o no sube al arrastrar, en GitHub tocá *Add file > Create new file*,
+     escribí como nombre `.github/workflows/tsf-alertas.yml` y pegá el contenido del archivo.
+
+### 3) Secretos (Settings > Secrets and variables > Actions > New repository secret)
+| Nombre | Valor |
+|---|---|
+| `GMAIL_USER` | tu Gmail, ej. `fede@gmail.com` (desde donde se envía) |
+| `GMAIL_APP_PASSWORD` | los 16 caracteres del paso 1 |
+| `EMAIL_TO` | mail donde querés recibir los avisos (puede ser el mismo) |
+
+### 4) Probalo
+Pestaña **Actions** > "TSF alertas por mail" > **Run workflow** > tildá "Mandar un mail de prueba" > Run.
+En 1 minuto te llega un mail con la última señal real marcada (con "🧪 PRUEBA" en el asunto).
+Si llega, ya está: queda corriendo solo.
+
+## Cambiar activo o temporalidad
+Editá `bot/config.json` (podés poner varios):
+```json
+"markets": [
+  { "symbol": "BTCUSDT", "interval": "4h" },
+  { "symbol": "ETHUSDT", "interval": "1h" }
+]
+```
+Temporalidades: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d.
+Los pesos, el puntaje mínimo y el filtro de tendencia están en el mismo archivo (mismos valores que tu Pine).
+
+## Cómo funciona / límites
+- La señal se evalúa **al cierre** de la vela, igual que el indicador. El mail llega unos minutos después del cierre.
+- La primera corrida no manda nada: empieza a vigilar desde ese momento.
+- Si Gmail falla, reintenta en la siguiente corrida (no se pierde la señal).
+- Si Binance bloquea el servidor de GitHub, la corrida marca error en rojo y GitHub te avisa por mail.
+- GitHub pausa los workflows programados si el repositorio queda 60 días sin actividad; el bot guarda su estado
+  con un commit cuando hay cambios, pero si pasa un tiempo sin señales y se pausa, entrá a Actions y reactivalo.
+- Con temporalidades menores a 4h los costos superan la ventaja del indicador (según los backtests de BTC).
+- Herramienta educativa. No es recomendación de inversión.
+
+name: TSF alertas por mail
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"      # revisa cada 10 minutos (GitHub puede demorar unos minutos)
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Mandar un mail de prueba"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write                # para guardar bot/state.json
+
+concurrency:
+  group: tsf-alertas
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Revisar señales y avisar por mail
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python bot/tsf_bot.py ${{ github.event.inputs.test == 'true' && '--test' || '' }}
+
+      - name: Guardar estado (para no repetir avisos)
+        if: ${{ github.event.inputs.test != 'true' }}
+        run: |
+          if [ -n "$(git status --porcelain bot/state.json)" ]; then
+            git config user.name "tsf-bot"
+            git config user.email "tsf-bot@users.noreply.github.com"
+            git add bot/state.json
+            git commit -m "estado del bot"
+            git pull --rebase
+            git push
+          fi
+
+{}
+
+#!/usr/bin/env python3
+"""
+TSF bot: avisa por mail cuando el indicador TSF Nivel 1 marca COMPRA o VENTA.
+
+Misma lógica que el Pine (PINE_2026): puntaje ponderado por confluencia, señal al CIERRE de la vela,
+sin repetir el mismo sentido dos veces seguidas. Solo usa la librería estándar de Python.
+
+Uso:
+  python bot/tsf_bot.py                 # revisa y manda mail si hay señal nueva
+  python bot/tsf_bot.py --test          # manda un mail de prueba con el estado actual
+  python bot/tsf_bot.py --dry-run       # no manda mail ni guarda estado, solo muestra
+  python bot/tsf_bot.py --csv datos.csv # señales sobre un CSV (time,open,high,low,close,volume)
+"""
+import json, os, sys, ssl, smtplib, urllib.request
+from email.message import EmailMessage
+from datetime import datetime, timezone
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+BASES = ["https://data-api.binance.vision", "https://api.binance.com",
+         "https://api1.binance.com", "https://api2.binance.com", "https://api3.binance.com"]
+INTERVAL_MS = {"1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000, "30m": 1_800_000,
+               "1h": 3_600_000, "2h": 7_200_000, "4h": 14_400_000, "6h": 21_600_000,
+               "8h": 28_800_000, "12h": 43_200_000, "1d": 86_400_000}
+CRITERIA = ["Tendencia EMA", "RSI", "MACD", "Bollinger", "Vela de giro", "Soporte/Resistencia", "Volumen"]
+
+
+# ---------------------------------------------------------------- indicadores (igual que Pine)
+def sma(src, n):
+    out, s = [None] * len(src), 0.0
+    for i, v in enumerate(src):
+        s += v
+        if i >= n:
+            s -= src[i - n]
+        if i >= n - 1:
+            out[i] = s / n
+    return out
+
+def ema(src, n, seed="pine"):
+    """Pine: ta.ema arranca desde el primer valor. seed='sma' reproduce el motor de backtest (solo para tests)."""
+    a, out = 2.0 / (n + 1), [None] * len(src)
+    if seed == "sma":
+        if len(src) < n:
+            return out
+        p = sum(src[:n]) / n
+        out[n - 1] = p
+        for i in range(n, len(src)):
+            p = src[i] * a + p * (1 - a)
+            out[i] = p
+        return out
+    p = src[0]
+    for i, v in enumerate(src):
+        p = v if i == 0 else a * v + (1 - a) * p
+        out[i] = p
+    return out
+
+def rma(src, n):
+    """Pine: ta.rma. Empieza con la media simple de los primeros n valores validos."""
+    out = [None] * len(src)
+    f = next((i for i, v in enumerate(src) if v is not None), None)
+    if f is None or f + n > len(src):
+        return out
+    p = sum(src[f:f + n]) / n
+    out[f + n - 1] = p
+    for i in range(f + n, len(src)):
+        p = (src[i] + (n - 1) * p) / n
+        out[i] = p
+    return out
+
+def stdev(src, n):
+    out = [None] * len(src)
+    for i in range(n - 1, len(src)):
+        w = src[i - n + 1:i + 1]
+        m = sum(w) / n
+        out[i] = (sum((x - m) ** 2 for x in w) / n) ** 0.5
+    return out
+
+def rsi_calc(close, n):
+    up, dn = [None] * len(close), [None] * len(close)
+    for i in range(1, len(close)):
+        ch = close[i] - close[i - 1]
+        up[i], dn[i] = max(ch, 0.0), max(-ch, 0.0)
+    ru, rd = rma(up, n), rma(dn, n)
+    out = [None] * len(close)
+    for i in range(len(close)):
+        if ru[i] is None or rd[i] is None:
+            continue
+        out[i] = 100.0 if rd[i] == 0 else (0.0 if ru[i] == 0 else 100 - 100 / (1 + ru[i] / rd[i]))
+    return out
+
+def atr_calc(h, l, c, n):
+    tr = [h[0] - l[0]] + [max(h[i] - l[i], abs(h[i] - c[i - 1]), abs(l[i] - c[i - 1])) for i in range(1, len(c))]
+    return rma(tr, n)
+
+def pivots(h, l, L):
+    n, sup, res, ls, lr = len(h), [None] * len(h), [None] * len(h), None, None
+    for i in range(n):
+        j = i - L
+        if j >= L:
+            lo, hi = l[j], h[j]
+            is_h = all(h[k] <= hi for k in range(j - L, j + L + 1))
+            is_l = all(l[k] >= lo for k in range(j - L, j + L + 1))
+            if is_h: lr = hi
+            if is_l: ls = lo
+        sup[i], res[i] = ls, lr
+    return sup, res
+
+
+# ---------------------------------------------------------------- señales
+def compute(C, p, ema_seed="pine"):
+    o, h, l, c, v = C["open"], C["high"], C["low"], C["close"], C["volume"]
+    n, W = len(c), p["weights"]
+    e1, e2, e3 = ema(c, p["emaF"], ema_seed), ema(c, p["emaM"], ema_seed), ema(c, p["emaS"], ema_seed)
+    rs = rsi_calc(c, p["rsiLen"])
+    fast, slow = ema(c, p["mF"], ema_seed), ema(c, p["mS"], ema_seed)
+    macd = [fast[i] - slow[i] if fast[i] is not None and slow[i] is not None else None for i in range(n)]
+    first = next((i for i, x in enumerate(macd) if x is not None), 0)
+    sig_part = ema([x for x in macd[first:]], p["mSig"], ema_seed)
+    sig = [None] * first + sig_part
+    hist = [macd[i] - sig[i] if macd[i] is not None and sig[i] is not None else None for i in range(n)]
+    basis, sd = sma(c, p["bbLen"]), stdev(c, p["bbLen"])
+    bbU = [basis[i] + p["bbMult"] * sd[i] if basis[i] is not None else None for i in range(n)]
+    bbL = [basis[i] - p["bbMult"] * sd[i] if basis[i] is not None else None for i in range(n)]
+    atr, volMA = atr_calc(h, l, c, p["atrLen"]), sma(v, 20)
+    sup, res = pivots(h, l, p["pivLen"])
+    wts = [W["trend"], W["rsi"], W["macd"], W["bb"], W["candle"], W["sr"], W["vol"]]
+    maxScore = sum(wts) - (0 if p["useVol"] else W["vol"])
+
+    bull, bear = [[False] * 7 for _ in range(n)], [[False] * 7 for _ in range(n)]
+    bs, ss = [0.0] * n, [0.0] * n
+    for i in range(1, n):
+        need = [e3[i], rs[i], rs[i - 1], hist[i], hist[i - 1], macd[i], sig[i], basis[i], basis[i - 1], atr[i], volMA[i]]
+        if any(x is None for x in need):
+            continue
+        body, rng = abs(c[i] - o[i]), h[i] - l[i]
+        upW, loW = h[i] - max(o[i], c[i]), min(o[i], c[i]) - l[i]
+        hammer = rng > 0 and loW >= 2 * body and loW >= 0.5 * rng and upW <= 0.25 * rng
+        star = rng > 0 and upW >= 2 * body and upW >= 0.5 * rng and loW <= 0.25 * rng
+        bullEng = c[i] > o[i] and c[i - 1] < o[i - 1] and c[i] >= o[i - 1] and o[i] <= c[i - 1]
+        bearEng = c[i] < o[i] and c[i - 1] > o[i - 1] and c[i] <= o[i - 1] and o[i] >= c[i - 1]
+        nearSup = sup[i] is not None and l[i] <= sup[i] + atr[i] * p["srTol"] and c[i] >= sup[i] - atr[i] * p["srTol"]
+        nearRes = res[i] is not None and h[i] >= res[i] - atr[i] * p["srTol"] and c[i] <= res[i] + atr[i] * p["srTol"]
+        b = [e1[i] > e2[i] and c[i] > e3[i],
+             (rs[i] > 50 and rs[i] < p["rsiOB"] and rs[i] > rs[i - 1]) or (rs[i] > p["rsiOS"] and rs[i - 1] <= p["rsiOS"]),
+             macd[i] > sig[i] and hist[i] > hist[i - 1],
+             (l[i] <= bbL[i] and c[i] > bbL[i]) or (c[i] > basis[i] and c[i - 1] <= basis[i - 1]),
+             bullEng or hammer, nearSup,
+             p["useVol"] and v[i] > volMA[i] and c[i] > o[i]]
+        s = [e1[i] < e2[i] and c[i] < e3[i],
+             (rs[i] < 50 and rs[i] > p["rsiOS"] and rs[i] < rs[i - 1]) or (rs[i] < p["rsiOB"] and rs[i - 1] >= p["rsiOB"]),
+             macd[i] < sig[i] and hist[i] < hist[i - 1],
+             (h[i] >= bbU[i] and c[i] < bbU[i]) or (c[i] < basis[i] and c[i - 1] >= basis[i - 1]),
+             bearEng or star, nearRes,
+             p["useVol"] and v[i] > volMA[i] and c[i] < o[i]]
+        bull[i], bear[i] = b, s
+        bs[i] = sum(wts[k] for k in range(7) if b[k])
+        ss[i] = sum(wts[k] for k in range(7) if s[k])
+
+    # señal cruda + control de estado (no repetir el mismo sentido seguido), igual que el Pine
+    ms, last, out = p["minScore"], 0, []
+    for i in range(1, n):
+        okL = (not p["trendFilter"]) or (e3[i] is not None and c[i] > e3[i])
+        okS = (not p["trendFilter"]) or (e3[i] is not None and c[i] < e3[i])
+        rawB = okL and bs[i] >= ms and bs[i] > ss[i] and not (bs[i - 1] >= ms and bs[i - 1] > ss[i - 1])
+        rawS = okS and ss[i] >= ms and ss[i] > bs[i] and not (ss[i - 1] >= ms and ss[i - 1] > bs[i - 1])
+        buy, sell = rawB and last != 1, rawS and last != -1
+        if buy: last = 1
+        elif sell: last = -1
+        if buy or sell:
+            sc = bs[i] if buy else ss[i]
+            flags = bull[i] if buy else bear[i]
+            out.append({"i": i, "t": C["t"][i], "side": "COMPRA" if buy else "VENTA", "score": sc, "max": maxScore,
+                        "strong": sc >= p["strongScore"], "close": c[i],
+                        "criterios": [f"{CRITERIA[k]} (+{wts[k]:g})" for k in range(7) if flags[k]]})
+    return out
+
+
+# ---------------------------------------------------------------- datos
+def fetch_klines(symbol, interval, limit=1000):
+    err = None
+    for b in BASES:
+        try:
+            req = urllib.request.Request(f"{b}/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}",
+                                         headers={"User-Agent": "tsf-bot/1.0"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                rows = json.loads(r.read().decode())
+            if rows:
+                return rows
+        except Exception as e:
+            err = e
+    raise RuntimeError(f"No pude bajar velas de {symbol} {interval}: {err}")
+
+def to_C(rows, interval=None):
+    ms = INTERVAL_MS.get(interval, 0)
+    now = int(datetime.now(timezone.utc).timestamp() * 1000)
+    rows = [r for r in rows if int(r[0]) + ms <= now] if ms else rows       # solo velas CERRADAS
+    return {"t": [int(r[0]) for r in rows], "open": [float(r[1]) for r in rows], "high": [float(r[2]) for r in rows],
+            "low": [float(r[3]) for r in rows], "close": [float(r[4]) for r in rows], "volume": [float(r[5]) for r in rows]}
+
+def read_csv(path):
+    lines = open(path, encoding="utf8").read().strip().split("\n")[1:]
+    return to_C([l.split(",")[:6] for l in lines])
+
+
+# ---------------------------------------------------------------- mail
+def fmt_time(ms):
+    t = datetime.fromtimestamp(ms / 1000, timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+        t = t.astimezone(ZoneInfo("America/Argentina/Buenos_Aires"))
+        return t.strftime("%d/%m/%Y %H:%M") + " (hora Argentina)"
+    except Exception:
+        return t.strftime("%d/%m/%Y %H:%M UTC")
+
+def build_mail(symbol, interval, sig, to, sender):
+    ico = "🟢" if sig["side"] == "COMPRA" else "🔴"
+    fuerte = "★ FUERTE " if sig["strong"] else ""
+    m = EmailMessage()
+    m["Subject"] = f"{ico} {fuerte}{sig['side']} {symbol} {interval} — cierre {sig['close']:g}"
+    m["From"], m["To"] = sender, to
+    m.set_content(
+        f"{ico} {fuerte}{sig['side']} en {symbol} ({interval})\n\n"
+        f"Precio de cierre de la vela: {sig['close']:g}\n"
+        f"Vela cerrada a las: {fmt_time(sig['t'] + INTERVAL_MS.get(interval, 0))}\n"
+        f"Puntaje: {sig['score']:g} de {sig['max']:g}\n\n"
+        f"Criterios que se cumplieron:\n" + "\n".join(f"  ✔ {x}" for x in sig["criterios"]) +
+        "\n\nLa señal se confirma al cierre de la vela; la entrada sería en la apertura de la siguiente.\n"
+        "Herramienta educativa. No es recomendación de inversión.\n")
+    return m
+
+def send(msg):
+    user, pwd = os.environ.get("GMAIL_USER", ""), os.environ.get("GMAIL_APP_PASSWORD", "")
+    if not user or not pwd:
+        raise RuntimeError("Faltan los secretos GMAIL_USER y GMAIL_APP_PASSWORD.")
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context(), timeout=30) as s:
+        s.login(user, pwd)
+        s.send_message(msg)
+
+
+# ---------------------------------------------------------------- principal
+def main(argv):
+    cfg = json.load(open(os.path.join(HERE, "config.json"), encoding="utf8"))
+    p, window = cfg["params"], int(cfg.get("ventana_velas", 12))
+    sender = os.environ.get("GMAIL_USER", "tsf-bot")
+    to = os.environ.get("EMAIL_TO") or sender
+    dry, test = "--dry-run" in argv, "--test" in argv
+
+    if "--csv" in argv:
+        sigs = compute(read_csv(argv[argv.index("--csv") + 1]), p)
+        print(f"{len(sigs)} señales ({sum(s['side']=='COMPRA' for s in sigs)} compras / {sum(s['side']=='VENTA' for s in sigs)} ventas)")
+        for s in sigs[-10:]:
+            print(fmt_time(s["t"]), s["side"], f"{s['score']:g}/{s['max']:g}", f"cierre {s['close']:g}", "FUERTE" if s["strong"] else "")
+        return 0
+
+    state_path = os.path.join(HERE, "state.json")
+    state = json.load(open(state_path, encoding="utf8")) if os.path.exists(state_path) else {}
+    failed = False
+    for mk in cfg["markets"]:
+        sym, itv = mk["symbol"].upper(), mk["interval"]
+        key = f"{sym}_{itv}"
+        try:
+            C = to_C(fetch_klines(sym, itv), itv)
+            if len(C["close"]) < 300:
+                raise RuntimeError("Muy pocas velas cerradas para calcular.")
+            sigs = compute(C, p)
+            last_t = C["t"][-1]
+            print(f"[{key}] última vela cerrada: {fmt_time(last_t)} | señales en el historial: {len(sigs)}")
+            if test:
+                sig = sigs[-1] if sigs else None
+                if sig is None:
+                    print(f"[{key}] sin señales en el historial para armar la prueba."); continue
+                msg = build_mail(sym, itv, sig, to, sender)
+                msg.replace_header("Subject", "🧪 PRUEBA — " + msg["Subject"])
+                if dry: print(msg["Subject"]); continue
+                send(msg); print(f"[{key}] mail de prueba enviado a {to}"); continue
+            if not cfg.get("alertas_activas", True):
+                state[key] = last_t          # pausado: avanza el estado para no mandar acumulados al reactivar
+                print(f"[{key}] alertas PAUSADAS: no se manda mail.")
+                continue
+            if key not in state:
+                state[key] = last_t
+                print(f"[{key}] primera corrida: no mando mail, empiezo a vigilar desde ahora."); continue
+            nuevas = [s for s in sigs if s["t"] > state[key] and s["i"] >= len(C["close"]) - window]
+            for s in nuevas:
+                msg = build_mail(sym, itv, s, to, sender)
+                print(f"[{key}] señal nueva: {s['side']} {fmt_time(s['t'])} -> {msg['Subject']}")
+                if not dry: send(msg)
+            state[key] = last_t
+        except Exception as e:
+            failed = True
+            print(f"[{key}] ERROR: {e}", file=sys.stderr)
+    if not dry and not test:
+        json.dump(state, open(state_path, "w", encoding="utf8"), indent=2)
+    return 1 if failed else 0
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
+
+{
+  "alertas_activas": true,
+  "markets": [
+    {
+      "symbol": "BTCUSDT",
+      "interval": "1h"
+    }
+  ],
+  "params": {
+    "emaF": 20,
+    "emaM": 50,
+    "emaS": 200,
+    "rsiLen": 14,
+    "rsiOB": 70,
+    "rsiOS": 30,
+    "mF": 12,
+    "mS": 26,
+    "mSig": 9,
+    "bbLen": 20,
+    "bbMult": 2.0,
+    "pivLen": 10,
+    "srTol": 0.5,
+    "atrLen": 14,
+    "minScore": 6,
+    "strongScore": 7,
+    "useVol": true,
+    "trendFilter": false,
+    "weights": {
+      "trend": 1,
+      "rsi": 1,
+      "macd": 3,
+      "bb": 1,
+      "candle": 2,
+      "sr": 1,
+      "vol": 1
+    }
+  },
+  "ventana_velas": 12
+}
