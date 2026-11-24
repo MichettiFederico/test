@@ -3,491 +3,439 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TSF Backtester</title>
+<title>TSF Panel de Alertas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-:root{--bg:#0f1218;--panel:#171c26;--panel2:#1d2430;--line:#2a3344;--tx:#e6eaf2;--mut:#8b97ad;--ac:#4f8cff;--g:#26c281;--r:#ef5350;--y:#f5b942}
+/* Layout: panel de control de una sola columna, tarjetas numeradas por orden de uso real (conectar, configurar, probar). */
+:root{
+  --bg:#f2f4f7; --surface:#ffffff; --surface2:#f6f8fa; --ink:#161b22; --muted:#5a6575; --line:#dde2e9;
+  --accent:#0b6b5d; --accent-ink:#ffffff; --accent-soft:#e0f1ee;
+  --ok:#157f3c; --ok-soft:#e2f4e8; --warn:#9a6700; --warn-soft:#fff3d1; --bad:#b42318; --bad-soft:#fde8e6;
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f141a; --surface:#171d25; --surface2:#1d2530; --ink:#e7ecf2; --muted:#98a4b5; --line:#2b3441;
+    --accent:#3fb8a5; --accent-ink:#06211c; --accent-soft:#143a34;
+    --ok:#4cc27a; --ok-soft:#14301f; --warn:#e3b341; --warn-soft:#3a2f10; --bad:#f47067; --bad-soft:#3d1a18; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --surface:#171d25; --surface2:#1d2530; --ink:#e7ecf2; --muted:#98a4b5; --line:#2b3441;
+  --accent:#3fb8a5; --accent-ink:#06211c; --accent-soft:#143a34;
+  --ok:#4cc27a; --ok-soft:#14301f; --warn:#e3b341; --warn-soft:#3a2f10; --bad:#f47067; --bad-soft:#3d1a18; color-scheme:dark;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
-header h1{font-size:17px;margin:0}header span{color:var(--mut);font-size:12.5px}
-.wrap{display:grid;grid-template-columns:330px 1fr;gap:16px;padding:16px;max-width:1500px;margin:0 auto}
-@media(max-width:900px){.wrap{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
-.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-label{display:block;font-size:12px;color:var(--mut)}
-input,select,button{font:inherit;color:var(--tx)}
-input[type=number],input[type=text],select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 8px;margin-top:2px}
-input[type=checkbox]{margin-right:6px}
-button{background:var(--ac);border:0;border-radius:6px;padding:8px 12px;cursor:pointer;font-weight:600}
-button.sec{background:var(--panel2);border:1px solid var(--line)}
-button:disabled{opacity:.5;cursor:default}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
-.kpi{background:var(--panel2);border-radius:8px;padding:10px}.kpi b{display:block;font-size:19px;margin-top:2px}.kpi small{color:var(--mut);font-size:11.5px}
-.pos{color:var(--g)}.neg{color:var(--r)}.mut{color:var(--mut)}
-canvas{width:100%;display:block;background:var(--panel2);border-radius:8px}
-table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:600;position:sticky;top:0;background:var(--panel)}
-.scroll{max-height:320px;overflow:auto}
-#status{font-size:12.5px;color:var(--mut);margin-top:8px;min-height:18px}
-.warn{background:#3a2f12;border:1px solid #6b5518;color:#f1d27a;border-radius:8px;padding:8px 10px;font-size:12.5px}
-textarea{width:100%;height:150px;background:var(--panel2);color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:8px;font:12px ui-monospace,Consolas,monospace}
-.pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;background:var(--panel2);border:1px solid var(--line)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);padding:24px max(16px,env(safe-area-inset-left,0px)) 56px max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding-bottom:4px}
+h1{font-size:22px;margin:0;font-weight:600;letter-spacing:-.01em}
+header .sub{color:var(--muted);font-size:13.5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card>h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0;font-weight:600;display:flex;align-items:center;gap:10px}
+.card>h2 .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:11px;letter-spacing:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:620px){.grid{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);min-width:0}
+input[type=text],input[type=password],input[type=email],input[type=number],select,textarea{
+  width:100%;font:inherit;color:var(--ink);background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;min-width:0}
+input:focus,select:focus,textarea:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+textarea{font-family:var(--mono);font-size:12px;min-height:150px;resize:vertical}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.hint a{color:var(--accent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{font:inherit;font-weight:600;border-radius:7px;padding:9px 14px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button:disabled{opacity:.55;cursor:default}
+button.ghost{background:transparent}
+.check{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:14px}
+.check input{width:auto;margin:0}
+
+/* interruptor principal */
+.master{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:9px;border:1px solid var(--line);background:var(--surface2)}
+.master.on{background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.master.off{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
+.switch{position:relative;width:52px;height:30px;flex:none}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;width:100%;height:100%;z-index:2}
+.switch .track{position:absolute;inset:0;border-radius:99px;background:var(--muted);transition:background .15s}
+.switch .thumb{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked~.track{background:var(--ok)}
+.switch input:checked~.thumb{transform:translateX(22px)}
+.switch input:focus-visible~.track{outline:2px solid var(--accent);outline-offset:2px}
+.master b{display:block;font-size:15px}
+.master span.d{font-size:13px;color:var(--muted)}
+
+/* activos */
+.mk{display:grid;grid-template-columns:1.4fr 1fr auto;gap:10px;align-items:start}
+.mk .warn{grid-column:1/-1;font-size:12.5px;color:var(--warn);margin-top:-4px}
+@media(max-width:520px){.mk{grid-template-columns:1fr 1fr}.mk button{grid-column:1/-1}}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font:500 12px var(--mono);padding:3px 9px;border-radius:99px;border:1px solid var(--line);background:var(--surface2);color:var(--muted)}
+.chip.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.chip.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.badge{font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--warn-soft);color:var(--warn);margin-left:auto}
+details{border:1px solid var(--line);border-radius:8px;background:var(--surface2)}
+summary{cursor:pointer;padding:10px 14px;font-weight:600;font-size:14px}
+details .in{padding:2px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.w{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+
+/* estado y registro */
+.runs{display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.run{display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}
+.run:last-child{border-bottom:0}
+.run .ic{width:18px;text-align:center;font-weight:700}
+.run .ic.s{color:var(--ok)}.run .ic.f{color:var(--bad)}.run .ic.p{color:var(--warn)}
+.run a{color:var(--accent);margin-left:auto;font-size:12.5px}
+#log{font:12.5px var(--mono);display:flex;flex-direction:column;gap:3px;max-height:190px;overflow:auto;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:10px 12px}
+#log div.ok{color:var(--ok)}#log div.bad{color:var(--bad)}#log div.warn{color:var(--warn)}#log:empty::before{content:"Acá vas a ver lo que va haciendo el panel.";color:var(--muted)}
+.note{font-size:12.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px}
+code{font-family:var(--mono);font-size:12.5px;background:var(--surface2);padding:1px 5px;border-radius:4px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<script>
+/* si el CDN principal falla, se prueba otro; si ambos fallan, el panel avisa y deja cargar los secretos a mano */
+function loadFallbackSodium(){var s=document.createElement('script');s.src='https://unpkg.com/libsodium-wrappers@0.7.13/dist/browsers/sodium.js';document.head.appendChild(s);}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/browsers/sodium.js" onerror="loadFallbackSodium()"></script>
 </head>
 <body>
-<header><h1>TSF Backtester</h1><span>Prueba y optimiza el indicador de confluencia (misma lógica que el Pine). Herramienta educativa, no es recomendación de inversión.</span></header>
 <div class="wrap">
-<aside>
-  <div class="card">
-    <h2>1 · Datos</h2>
-    <div class="grid2">
-      <label>Símbolo<input id="sym" type="text" value="BTCUSDT" list="syms"></label>
-      <label>Mercado<select id="mkt"><option value="spot">Spot</option><option value="fut">Futuros USDT-M</option></select></label>
-      <label>Temporalidad<select id="tf"><option>5m</option><option>15m</option><option selected>1h</option><option>4h</option><option>1d</option></select></label>
-      <label>Velas (máx 20000)<input id="cnt" type="number" value="5000" min="500" max="20000" step="500"></label>
+  <header>
+    <h1>TSF · Panel de alertas</h1>
+    <span class="sub">Elegí el mail, el activo y si las alertas están activas. Los cambios los toma el bot en su próxima revisión.</span>
+  </header>
+
+  <section class="card" id="cConn">
+    <h2><span class="n">1</span>Conexión con tu GitHub</h2>
+    <div class="grid">
+      <label>Repositorio (usuario/nombre)
+        <input type="text" id="repo" placeholder="fede/tsf-bot" autocomplete="off" spellcheck="false">
+      </label>
+      <label>Token de acceso
+        <input type="password" id="token" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
+      </label>
     </div>
-    <datalist id="syms"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option></datalist>
-    <div class="row"><button id="btnLoad">Descargar de Binance</button>
-    <button class="sec" onclick="document.getElementById('csv').click()">Cargar CSV</button><input id="csv" type="file" accept=".csv,.txt" hidden></div>
-    <div id="status"></div>
-  </div>
-  <div class="card">
-    <h2>2 · Indicador</h2>
-    <div class="grid2" id="pgrid"></div>
-  </div>
-  <div class="card">
-    <h2>3 · Riesgo y costos</h2>
-    <div class="grid2">
-      <label>Capital inicial<input id="capital" type="number" value="1000"></label>
-      <label>Riesgo por trade (%)<input id="riskPct" type="number" value="1" step="0.1"></label>
-      <label>Apalancamiento máx.<input id="leverage" type="number" value="5" step="1"></label>
-      <label>Comisión por lado (%)<input id="fee" type="number" value="0.05" step="0.01"></label>
-      <label>Slippage (%)<input id="slip" type="number" value="0.02" step="0.01"></label>
-      <label style="display:flex;align-items:end"><span><input id="allowShort" type="checkbox" checked>Operar cortos</span></label>
+    <label class="check"><input type="checkbox" id="remember"> Recordar en este navegador (el token se guarda solo acá y se envía únicamente a api.github.com)</label>
+    <details>
+      <summary>¿Cómo creo el token? (1 minuto)</summary>
+      <div class="in">
+        <p class="hint">Entrá a <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> y completá:</p>
+        <p class="hint">• <b>Repository access</b>: Only select repositories → elegí tu repositorio del bot.<br>
+        • <b>Permissions → Repository</b>, todos en <i>Read and write</i>: <b>Contents</b>, <b>Secrets</b> y <b>Actions</b>.<br>
+        • Vencimiento: el que prefieras (podés borrarlo cuando quieras).</p>
+        <p class="hint">Copiá el token que empieza con <code>github_pat_</code> y pegalo arriba.</p>
+      </div>
+    </details>
+    <div class="row">
+      <button class="primary" id="btnConnect">Conectar y cargar mi configuración</button>
+      <span id="connState" class="hint"></span>
     </div>
-    <div class="row"><button id="btnRun">Correr backtest</button></div>
-  </div>
-  <div class="card">
-    <h2>4 · Optimizador</h2>
-    <div class="grid2">
-      <label>Combinaciones<input id="optN" type="number" value="300" step="50"></label>
-      <label>% para entrenar<input id="optSplit" type="number" value="70"></label>
-      <label>Trades mínimos<input id="optMin" type="number" value="30"></label>
+  </section>
+
+  <section class="card" id="cCfg">
+    <h2><span class="n">2</span>Alertas <span class="badge" id="dirty" hidden>Cambios sin guardar</span></h2>
+
+    <div class="master on" id="master">
+      <div class="switch"><input type="checkbox" id="alertsOn" checked aria-label="Alertas activas"><span class="track"></span><span class="thumb"></span></div>
+      <div><b id="masterT">Alertas activas</b><span class="d" id="masterD">Te llega un mail cuando una vela cierra con compra o venta.</span></div>
     </div>
-    <div class="row"><button id="btnOpt" class="sec">Optimizar (train/test)</button><button id="btnStop" class="sec" disabled>Parar</button></div>
-    <div id="optStatus" class="mut" style="margin-top:8px;font-size:12.5px"></div>
-  </div>
-</aside>
-<main>
-  <div class="card"><h2>Resultado</h2><div id="kpis" class="kpis"><span class="mut">Descargá datos y corré el backtest.</span></div></div>
-  <div class="card"><h2>Precio y operaciones</h2><canvas id="cPrice" height="260"></canvas></div>
-  <div class="card"><h2>Curva de capital</h2><canvas id="cEq" height="170"></canvas></div>
-  <div class="card"><h2>¿Qué criterios aportan? (R promedio por operación)</h2><div class="scroll" style="max-height:none"><table id="tAttr"></table></div>
-    <p class="mut" style="font-size:12px;margin:8px 0 0">"Con" = el criterio estaba activo en la señal de entrada. Si el R con el criterio es peor que sin él, ese criterio probablemente no suma en este activo/temporalidad.</p></div>
-  <div class="card"><h2>Optimizador: mejores combinaciones</h2>
-    <div class="warn" style="margin-bottom:10px">Mirá la columna <b>Test</b> (datos que el optimizador no vio). Si Train rinde y Test no, la combinación está sobreajustada: no sirve.</div>
-    <div class="scroll"><table id="tOpt"><tr><td class="mut">Sin resultados todavía.</td></tr></table></div>
-    <h2 style="margin-top:14px">Valores para pegar en el Pine</h2><textarea id="pineOut" readonly placeholder="Se completa al aplicar una combinación o al correr el backtest."></textarea>
-  </div>
-  <div class="card"><h2>Operaciones (últimas 150)</h2><div class="scroll"><table id="tTr"></table></div></div>
-</main>
+
+    <label>Mail donde querés recibir los avisos
+      <input type="email" id="emailTo" placeholder="tu@mail.com" autocomplete="email">
+      <span class="hint" id="emailHint">Se guarda cifrado como secreto en tu GitHub, no queda en el código. Dejalo vacío para no cambiarlo.</span>
+    </label>
+
+    <div>
+      <div class="hint" style="margin-bottom:8px"><b style="color:var(--ink)">Activos a vigilar</b> (símbolo de Binance y temporalidad)</div>
+      <div id="markets" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div class="row" style="margin-top:10px"><button class="ghost" id="addMk" type="button">+ Agregar otro activo</button></div>
+      <datalist id="syms"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option><option>DOGEUSDT</option><option>ADAUSDT</option></datalist>
+    </div>
+
+    <details>
+      <summary>Cuenta de envío (la primera vez)</summary>
+      <div class="in">
+        <p class="hint">El bot manda los mails desde un Gmail tuyo con una <b>contraseña de aplicación</b> (se crea en <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>; requiere la verificación en 2 pasos).</p>
+        <div class="grid">
+          <label>Gmail desde el que se envía
+            <input type="email" id="gUser" placeholder="tu@gmail.com" autocomplete="off">
+          </label>
+          <label>Contraseña de aplicación (16 caracteres)
+            <input type="password" id="gPass" placeholder="xxxx xxxx xxxx xxxx" autocomplete="off">
+          </label>
+        </div>
+        <div class="chips" id="secChips"></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Ajustes del indicador (avanzado)</summary>
+      <div class="in">
+        <div class="grid">
+          <label>Puntaje mínimo para señal<input type="number" id="minScore" step="0.5" min="0.5"></label>
+          <label>Puntaje "fuerte" (se marca ★ en el mail)<input type="number" id="strongScore" step="0.5" min="0.5"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="trendFilter"> Filtro de tendencia: compras solo sobre la EMA lenta, ventas solo debajo</label>
+        <label class="check"><input type="checkbox" id="useVol"> Usar volumen</label>
+        <div class="hint">Peso de cada criterio en el puntaje</div>
+        <div class="w" id="weights"></div>
+      </div>
+    </details>
+
+    <div class="row">
+      <button class="primary" id="btnSave">Guardar cambios</button>
+      <button id="btnTest">Mandar mail de prueba</button>
+    </div>
+    <div id="log" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>Estado del bot</h2>
+    <div class="runs" id="runs"><span class="hint">Conectate para ver las últimas revisiones.</span></div>
+    <div class="row"><button class="ghost" id="btnRuns">Actualizar</button></div>
+  </section>
+
+  <section class="card">
+    <h2>Sin token (modo manual)</h2>
+    <p class="hint">Si preferís no usar un token, copiá esta configuración y pegala en el archivo <code>bot/config.json</code> de tu repositorio (lápiz de edición en GitHub). El mail y la cuenta de envío se cargan a mano en <i>Settings → Secrets and variables → Actions</i>.</p>
+    <textarea id="manualJson" readonly spellcheck="false"></textarea>
+    <div class="row"><button class="ghost" id="btnCopy">Copiar configuración</button></div>
+  </section>
+
+  <p class="note">Herramienta educativa. No es recomendación de inversión. El panel no guarda tu mail ni tus claves en ningún servidor: habla directamente con la API de GitHub desde tu navegador.</p>
 </div>
 
 <script>
-(function (root) {
-'use strict';
-const NaNs = n => new Array(n).fill(NaN);
-
-// ---------- Indicadores ----------
-function sma(src, len) {
-  const n = src.length, o = NaNs(n); let s = 0, cnt = 0;
-  for (let i = 0; i < n; i++) {
-    const v = src[i];
-    if (!isNaN(v)) { s += v; cnt++; }
-    if (i >= len) { const u = src[i - len]; if (!isNaN(u)) { s -= u; cnt--; } }
-    if (cnt === len && i >= len - 1) o[i] = s / len;
-  }
-  return o;
-}
-function expAvg(src, len, k) {
-  const n = src.length, o = NaNs(n);
-  const f = src.findIndex(v => !isNaN(v));
-  if (f < 0 || f + len > n) return o;
-  let s = 0; for (let i = f; i < f + len; i++) s += src[i];
-  let p = s / len; o[f + len - 1] = p;
-  for (let i = f + len; i < n; i++) { p = src[i] * k + p * (1 - k); o[i] = p; }
-  return o;
-}
-const ema = (src, len) => expAvg(src, len, 2 / (len + 1));
-const rma = (src, len) => expAvg(src, len, 1 / len);
-function stdev(src, len) {
-  const n = src.length, o = NaNs(n);
-  for (let i = len - 1; i < n; i++) {
-    let m = 0; for (let k = i - len + 1; k <= i; k++) m += src[k]; m /= len;
-    let v = 0; for (let k = i - len + 1; k <= i; k++) v += (src[k] - m) * (src[k] - m);
-    o[i] = Math.sqrt(v / len);
-  }
-  return o;
-}
-function rsi(close, len) {
-  const n = close.length, up = NaNs(n), dn = NaNs(n);
-  for (let i = 1; i < n; i++) { const ch = close[i] - close[i - 1]; up[i] = Math.max(ch, 0); dn[i] = Math.max(-ch, 0); }
-  const ru = rma(up, len), rd = rma(dn, len), o = NaNs(n);
-  for (let i = 0; i < n; i++) if (!isNaN(ru[i]) && !isNaN(rd[i])) o[i] = rd[i] === 0 ? 100 : 100 - 100 / (1 + ru[i] / rd[i]);
-  return o;
-}
-function atrCalc(C, len) {
-  const n = C.close.length, tr = NaNs(n);
-  for (let i = 0; i < n; i++) {
-    tr[i] = i === 0 ? C.high[i] - C.low[i]
-      : Math.max(C.high[i] - C.low[i], Math.abs(C.high[i] - C.close[i - 1]), Math.abs(C.low[i] - C.close[i - 1]));
-  }
-  return rma(tr, len);
-}
-// Último soporte/resistencia confirmado (pivote con L velas a la izquierda y R a la derecha)
-function pivots(high, low, L, R) {
-  const n = high.length, sup = NaNs(n), res = NaNs(n); let ls = NaN, lr = NaN;
-  for (let i = 0; i < n; i++) {
-    const j = i - R;
-    if (j >= L) {
-      let isH = true, isL = true;
-      for (let k = j - L; k <= j + R; k++) { if (high[k] > high[j]) isH = false; if (low[k] < low[j]) isL = false; }
-      if (isH) lr = high[j];
-      if (isL) ls = low[j];
-    }
-    sup[i] = ls; res[i] = lr;
-  }
-  return { sup, res };
-}
-
-const DEFAULTS = {
-  emaF: 20, emaM: 50, emaS: 200, rsiLen: 14, rsiOB: 70, rsiOS: 30,
-  mF: 12, mS: 26, mSig: 9, bbLen: 20, bbMult: 2, pivLen: 10, srTol: 0.5,
-  minScore: 4, useVol: true, atrLen: 14, slMult: 1.5, rr: 2
-};
-const CRITERIA = ['Tendencia EMA', 'RSI', 'MACD', 'Bollinger', 'Vela de giro', 'Soporte/Resistencia', 'Volumen'];
-
-// ---------- Señales (misma lógica que el Pine) ----------
-function computeSignals(C, p) {
-  const n = C.close.length, { open, high, low, close, volume } = C;
-  const e1 = ema(close, p.emaF), e2 = ema(close, p.emaM), e3 = ema(close, p.emaS);
-  const rs = rsi(close, p.rsiLen);
-  const fast = ema(close, p.mF), slow = ema(close, p.mS);
-  const macd = close.map((_, i) => fast[i] - slow[i]);
-  const sig = ema(macd, p.mSig);
-  const hist = macd.map((v, i) => v - sig[i]);
-  const basis = sma(close, p.bbLen), sd = stdev(close, p.bbLen);
-  const bbUp = basis.map((v, i) => v + p.bbMult * sd[i]);
-  const bbLow = basis.map((v, i) => v - p.bbMult * sd[i]);
-  const atr = atrCalc(C, p.atrLen), volMA = sma(volume, 20);
-  const { sup, res } = pivots(high, low, p.pivLen, p.pivLen);
-
-  const bull = CRITERIA.map(() => new Uint8Array(n)), bear = CRITERIA.map(() => new Uint8Array(n));
-  const bullScore = new Uint8Array(n), bearScore = new Uint8Array(n);
-  for (let i = 1; i < n; i++) {
-    if ([e3[i], rs[i], rs[i - 1], hist[i], hist[i - 1], macd[i], sig[i], basis[i], basis[i - 1], atr[i], volMA[i]].some(isNaN)) continue;
-    const body = Math.abs(close[i] - open[i]), rng = high[i] - low[i];
-    const upW = high[i] - Math.max(open[i], close[i]), loW = Math.min(open[i], close[i]) - low[i];
-    const hammer = rng > 0 && loW >= 2 * body && loW >= 0.5 * rng && upW <= 0.25 * rng;
-    const star = rng > 0 && upW >= 2 * body && upW >= 0.5 * rng && loW <= 0.25 * rng;
-    const bullEng = close[i] > open[i] && close[i - 1] < open[i - 1] && close[i] >= open[i - 1] && open[i] <= close[i - 1];
-    const bearEng = close[i] < open[i] && close[i - 1] > open[i - 1] && close[i] <= open[i - 1] && open[i] >= close[i - 1];
-    const nearSup = !isNaN(sup[i]) && low[i] <= sup[i] + atr[i] * p.srTol && close[i] >= sup[i] - atr[i] * p.srTol;
-    const nearRes = !isNaN(res[i]) && high[i] >= res[i] - atr[i] * p.srTol && close[i] <= res[i] + atr[i] * p.srTol;
-    const xo = (a, b) => a[i] > b && a[i - 1] <= b;
-    const xu = (a, b) => a[i] < b && a[i - 1] >= b;
-
-    const b = [
-      e1[i] > e2[i] && close[i] > e3[i],
-      (rs[i] > 50 && rs[i] < p.rsiOB && rs[i] > rs[i - 1]) || xo(rs, p.rsiOS),
-      macd[i] > sig[i] && hist[i] > hist[i - 1],
-      (low[i] <= bbLow[i] && close[i] > bbLow[i]) || (close[i] > basis[i] && close[i - 1] <= basis[i - 1]),
-      bullEng || hammer,
-      nearSup,
-      p.useVol ? (volume[i] > volMA[i] && close[i] > open[i]) : false
-    ];
-    const s = [
-      e1[i] < e2[i] && close[i] < e3[i],
-      (rs[i] < 50 && rs[i] > p.rsiOS && rs[i] < rs[i - 1]) || xu(rs, p.rsiOB),
-      macd[i] < sig[i] && hist[i] < hist[i - 1],
-      (high[i] >= bbUp[i] && close[i] < bbUp[i]) || (close[i] < basis[i] && close[i - 1] >= basis[i - 1]),
-      bearEng || star,
-      nearRes,
-      p.useVol ? (volume[i] > volMA[i] && close[i] < open[i]) : false
-    ];
-    let bs = 0, ss = 0;
-    for (let k = 0; k < 7; k++) { if (b[k]) { bull[k][i] = 1; bs++; } if (s[k]) { bear[k][i] = 1; ss++; } }
-    bullScore[i] = bs; bearScore[i] = ss;
-  }
-  const buy = new Uint8Array(n), sell = new Uint8Array(n);
-  for (let i = 1; i < n; i++) {
-    const bs = bullScore[i], ss = bearScore[i], pb = bullScore[i - 1], ps = bearScore[i - 1];
-    buy[i] = (bs >= p.minScore && bs > ss && !(pb >= p.minScore && pb > ps)) ? 1 : 0;
-    sell[i] = (ss >= p.minScore && ss > bs && !(ps >= p.minScore && ps > pb)) ? 1 : 0;
-  }
-  return { bull, bear, bullScore, bearScore, buy, sell, atr, sup, res, e1, e2, e3 };
-}
-
-function warmup(p) {
-  return Math.max(p.emaS, p.bbLen, p.mS + p.mSig, p.rsiLen * 2, p.atrLen * 2, 20) + p.pivLen * 2;
-}
-
-// ---------- Backtest ----------
-// La señal se genera al cierre de la vela i y se ejecuta en la apertura de la i+1.
-// SL/TP por ATR. Si en una vela se tocan SL y TP, se asume que pegó primero el SL.
-function backtest(C, sg, p, cfg, from, to) {
-  const { open, high, low, close } = C;
-  let eq = cfg.capital; const trades = [], curve = [{ i: from, eq }];
-  const fee = cfg.fee / 100, slip = cfg.slip / 100;
-  let pos = null, pend = 0, pendAtr = NaN, pendFlags = null;
-
-  function closePos(price, i, reason, adverse) {
-    const exit = adverse ? price * (1 - pos.dir * slip) : price;
-    const pnl = pos.notional * pos.dir * (exit / pos.entry - 1) - pos.notional * fee * 2;
-    eq += pnl;
-    trades.push({ dir: pos.dir, entryI: pos.i, exitI: i, entry: pos.entry, exit, pnl, R: pnl / pos.riskReal, reason, flags: pos.flags, eq });
-    curve.push({ i, eq });
-    pos = null;
-  }
-  for (let i = from; i < to; i++) {
-    if (eq <= 0) break;
-    if (pend !== 0) {
-      if (pos && pos.dir !== pend) closePos(open[i], i, 'señal opuesta', true);
-      if (!pos && (pend === 1 || cfg.allowShort)) {
-        const entry = open[i] * (1 + pend * slip), dist = pendAtr * p.slMult;
-        const sl = entry - pend * dist, tp = entry + pend * dist * p.rr;
-        const stopPct = dist / entry, risk = eq * cfg.riskPct / 100;
-        const notional = Math.min(risk / stopPct, eq * cfg.leverage);
-        pos = { dir: pend, i, entry, sl, tp, notional, riskReal: notional * stopPct, flags: pendFlags };
-      }
-      pend = 0;
-    }
-    if (pos) {
-      if (pos.dir === 1) {
-        if (open[i] <= pos.sl) closePos(open[i], i, 'SL', true);
-        else if (low[i] <= pos.sl) closePos(pos.sl, i, 'SL', true);
-        else if (high[i] >= pos.tp) closePos(pos.tp, i, 'TP', false);
-      } else {
-        if (open[i] >= pos.sl) closePos(open[i], i, 'SL', true);
-        else if (high[i] >= pos.sl) closePos(pos.sl, i, 'SL', true);
-        else if (low[i] <= pos.tp) closePos(pos.tp, i, 'TP', false);
-      }
-    }
-    if (i < to - 1) {
-      if (sg.buy[i]) { pend = 1; pendAtr = sg.atr[i]; pendFlags = sg.bull.map(a => a[i]); }
-      else if (sg.sell[i]) { pend = -1; pendAtr = sg.atr[i]; pendFlags = sg.bear.map(a => a[i]); }
-    }
-  }
-  if (pos) closePos(close[to - 1], to - 1, 'fin', false);
-  return { trades, curve, eq };
-}
-
-function metrics(bt, cfg, C, from, to) {
-  const t = bt.trades, n = t.length;
-  const wins = t.filter(x => x.pnl > 0), losses = t.filter(x => x.pnl <= 0);
-  const gp = wins.reduce((a, x) => a + x.pnl, 0), gl = -losses.reduce((a, x) => a + x.pnl, 0);
-  let peak = cfg.capital, maxDD = 0;
-  for (const c of bt.curve) { if (c.eq > peak) peak = c.eq; maxDD = Math.max(maxDD, (peak - c.eq) / peak * 100); }
-  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
-  const longs = t.filter(x => x.dir === 1), shorts = t.filter(x => x.dir === -1);
-  return {
-    trades: n,
-    winRate: n ? wins.length / n * 100 : 0,
-    pf: gl > 0 ? gp / gl : (gp > 0 ? Infinity : 0),
-    net: (bt.eq / cfg.capital - 1) * 100,
-    maxDD,
-    avgR: avg(t.map(x => x.R)),
-    avgWin: avg(wins.map(x => x.pnl)), avgLoss: avg(losses.map(x => x.pnl)),
-    longs: longs.length, shorts: shorts.length,
-    longPnl: longs.reduce((a, x) => a + x.pnl, 0), shortPnl: shorts.reduce((a, x) => a + x.pnl, 0),
-    buyHold: (C.close[to - 1] / C.close[from] - 1) * 100,
-    finalEq: bt.eq
-  };
-}
-
-// Qué tan bien le fue a las operaciones cuando cada criterio estaba (o no) activo en la señal
-function attribution(trades) {
-  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
-  return CRITERIA.map((name, k) => {
-    const T = trades.filter(t => t.flags && t.flags[k]), F = trades.filter(t => t.flags && !t.flags[k]);
-    return { name, nOn: T.length, rOn: avg(T.map(t => t.R)), nOff: F.length, rOff: avg(F.map(t => t.R)) };
-  });
-}
-
-function randomParams(base) {
-  const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-  const rf = (a, b, s) => +(Math.round((a + Math.random() * (b - a)) / s) * s).toFixed(2);
-  return Object.assign({}, base, {
-    emaF: ri(8, 30), emaM: ri(35, 100), emaS: ri(120, 250), rsiLen: ri(7, 21),
-    mF: ri(8, 16), mS: ri(20, 34), bbLen: ri(14, 30), bbMult: rf(1.5, 2.5, 0.1),
-    pivLen: ri(5, 15), srTol: rf(0.2, 1, 0.1), minScore: ri(3, 6),
-    useVol: Math.random() < 0.5, slMult: rf(1, 3, 0.25), rr: rf(1, 4, 0.25)
-  });
-}
-
-function evalParams(C, p, cfg, from, to) {
-  const sg = computeSignals(C, p);
-  const bt = backtest(C, sg, p, cfg, from, to);
-  return { sg, bt, m: metrics(bt, cfg, C, from, to) };
-}
-
-const api = { sma, ema, rma, rsi, stdev, atrCalc, pivots, DEFAULTS, CRITERIA, computeSignals, warmup, backtest, metrics, attribution, randomParams, evalParams };
-if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.TSF = api;
-})(typeof window !== 'undefined' ? window : globalThis);
-
-</script>
-<script>
 (function(){
-const T = window.TSF, $ = id => document.getElementById(id);
-let C = null, last = null, stopFlag = false;
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+var INTERVALS = ['1m','3m','5m','15m','30m','1h','2h','4h','6h','8h','12h','1d'];
+var SHORT = {'1m':1,'3m':1,'5m':1,'15m':1,'30m':1,'1h':1,'2h':1};
+var WLABELS = {trend:'Tendencia EMA', rsi:'RSI', macd:'MACD', bb:'Bollinger', candle:'Vela de giro', sr:'Soporte/Resistencia', vol:'Volumen'};
+var DEFAULT_CFG = {alertas_activas:true, markets:[{symbol:'BTCUSDT',interval:'1h'}],
+  params:{emaF:20,emaM:50,emaS:200,rsiLen:14,rsiOB:70,rsiOS:30,mF:12,mS:26,mSig:9,bbLen:20,bbMult:2,pivLen:10,srTol:0.5,atrLen:14,
+          minScore:6,strongScore:7,useVol:true,trendFilter:false,weights:{trend:1,rsi:1,macd:3,bb:1,candle:2,sr:1,vol:1}}, ventana_velas:12};
+var WORKFLOW = 'tsf-alertas.yml';
+var S = {cfg:clone(DEFAULT_CFG), sha:null, branch:null, connected:false, secrets:null};
 
-const SPEC = [
-  ['emaF','EMA rápida',1],['emaM','EMA media',1],['emaS','EMA lenta',1],
-  ['rsiLen','RSI largo',1],['rsiOB','RSI sobrecompra',1],['rsiOS','RSI sobreventa',1],
-  ['mF','MACD rápida',1],['mS','MACD lenta',1],['mSig','MACD señal',1],
-  ['bbLen','Bollinger largo',1],['bbMult','Bollinger desvíos',0.1],['pivLen','Pivote (velas)',1],
-  ['srTol','Tolerancia S/R (x ATR)',0.1],['minScore','Puntos mínimos',1],['atrLen','ATR largo',1],
-  ['slMult','Stop (x ATR)',0.25],['rr','Ratio R/B (TP)',0.25]
-];
-const PINE_NAMES = {emaF:'EMA rápida',emaM:'EMA media',emaS:'EMA lenta',rsiLen:'RSI largo',rsiOB:'RSI sobrecompra',rsiOS:'RSI sobreventa',mF:'MACD rápida',mS:'MACD lenta',mSig:'MACD señal',bbLen:'Bollinger largo',bbMult:'Bollinger desvíos',pivLen:'Pivote (velas a cada lado)',srTol:'Tolerancia (x ATR)',minScore:'Puntos mínimos para señal (de 7)',useVol:'Usar volumen',atrLen:'ATR largo',slMult:'Stop Loss (x ATR)',rr:'Ratio riesgo/beneficio (TP)'};
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
-const pg = $('pgrid');
-SPEC.forEach(([k,l,s])=>{ pg.insertAdjacentHTML('beforeend',`<label>${l}<input id="p_${k}" type="number" step="${s}" value="${T.DEFAULTS[k]}"></label>`); });
-pg.insertAdjacentHTML('beforeend',`<label style="display:flex;align-items:end"><span><input id="p_useVol" type="checkbox" checked>Usar volumen</span></label>`);
-
-function getP(){ const p={}; SPEC.forEach(([k])=>p[k]=parseFloat($('p_'+k).value)); p.useVol=$('p_useVol').checked; return p; }
-function setP(p){ SPEC.forEach(([k])=>$('p_'+k).value=p[k]); $('p_useVol').checked=!!p.useVol; }
-function getCfg(){ return {capital:+$('capital').value||1000, riskPct:+$('riskPct').value||1, leverage:+$('leverage').value||1, fee:+$('fee').value||0, slip:+$('slip').value||0, allowShort:$('allowShort').checked}; }
-
-const fmt=(v,d=2)=>v===Infinity?'∞':(isNaN(v)||v==null?'–':v.toFixed(d));
-const cls=v=>v>0?'pos':(v<0?'neg':'');
-const dt=t=>new Date(t).toISOString().slice(0,16).replace('T',' ');
-const setStatus=s=>$('status').textContent=s;
-
-// ---------- Datos ----------
-async function fetchKlines(sym,tf,count,mkt){
-  const bases = mkt==='fut' ? ['https://fapi.binance.com/fapi/v1/klines'] : ['https://api.binance.com/api/v3/klines','https://data-api.binance.vision/api/v3/klines'];
-  const lim = mkt==='fut'?1500:1000; let out=[], end=Date.now();
-  while(out.length<count){
-    let rows=null, err=null;
-    for(const b of bases){ try{ const r=await fetch(`${b}?symbol=${sym}&interval=${tf}&limit=${lim}&endTime=${end}`); if(!r.ok) throw new Error('HTTP '+r.status); rows=await r.json(); break; }catch(e){ err=e; } }
-    if(!rows) throw err||new Error('sin respuesta');
-    if(!rows.length) break;
-    out=rows.concat(out); end=rows[0][0]-1; setStatus(`Descargando… ${out.length} velas`);
-    if(rows.length<lim) break;
-  }
-  return out.slice(-count);
+/* ---------- registro ---------- */
+function log(msg, kind){
+  var d = document.createElement('div'); d.className = kind || '';
+  var t = new Date(); var hh = ('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2)+':'+('0'+t.getSeconds()).slice(-2);
+  d.textContent = hh+'  '+msg; var L = $('log'); L.appendChild(d); L.scrollTop = L.scrollHeight;
 }
-function toC(rows){ const C={t:[],open:[],high:[],low:[],close:[],volume:[]}; rows.forEach(r=>{C.t.push(+r[0]);C.open.push(+r[1]);C.high.push(+r[2]);C.low.push(+r[3]);C.close.push(+r[4]);C.volume.push(+r[5]);}); return C; }
-function parseCSV(text){
-  const lines=text.trim().split(/\r?\n/); const d=lines[0].includes(';')?';':',';
-  const h=lines[0].split(d).map(x=>x.trim().toLowerCase().replace(/"/g,''));
-  const ix=n=>h.findIndex(x=>x===n||x.startsWith(n));
-  const it=h.findIndex(x=>x==='time'||x==='date'||x==='timestamp'||x==='datetime'||x==='open time'), io=ix('open'), ih=ix('high'), il=ix('low'), ic=ix('close'), iv=h.findIndex(x=>x.startsWith('vol'));
-  if([it,io,ih,il,ic].some(i=>i<0)) throw new Error('El CSV necesita columnas time, open, high, low, close (y volume).');
-  const rows=[];
-  for(let i=1;i<lines.length;i++){
-    const c=lines[i].split(d).map(x=>x.replace(/"/g,'')); if(c.length<5) continue;
-    let t=+c[it]; if(isNaN(t)) t=Date.parse(c[it]); else if(t<1e12) t*=1000;
-    if(isNaN(t)) continue; rows.push([t,c[io],c[ih],c[il],c[ic],iv>=0?c[iv]:0]);
-  }
-  rows.sort((a,b)=>a[0]-b[0]); return rows;
+function busy(on){ ['btnConnect','btnSave','btnTest','btnRuns'].forEach(function(id){ $(id).disabled = on; }); }
+function markDirty(){ $('dirty').hidden = false; syncManual(); }
+
+/* ---------- GitHub ---------- */
+function repoName(){ return $('repo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').replace(/\/+$/,''); }
+function explain(status, data){
+  var m = data && data.message ? data.message : '';
+  if(status===401) return 'El token no es válido o venció. Creá uno nuevo.';
+  if(status===403) return 'El token no tiene permiso para esto. Revisá que Contents, Secrets y Actions estén en "Read and write". ('+m+')';
+  if(status===404) return 'No encontré eso. Revisá el nombre del repositorio y que el token tenga acceso a ese repositorio.';
+  if(status===409 || status===422) return 'Conflicto al guardar: '+m;
+  return 'GitHub respondió '+status+(m?': '+m:'');
 }
-function onData(c,label){
-  C=c; const n=C.close.length;
-  setStatus(`${label}: ${n} velas, ${dt(C.t[0])} → ${dt(C.t[n-1])}`);
-  drawPrice(null,0,n);
+function gh(path, opt){
+  opt = opt || {};
+  var token = $('token').value.trim();
+  var headers = {'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Authorization':'Bearer '+token};
+  if(opt.body) headers['Content-Type'] = 'application/json';
+  return fetch('https://api.github.com'+path, {method:opt.method||'GET', headers:headers, body:opt.body?JSON.stringify(opt.body):undefined}).then(function(r){
+    if(r.status===204) return {};
+    return r.json().catch(function(){ return null; }).then(function(data){
+      if(!r.ok){ var e = new Error(explain(r.status,data)); e.status = r.status; throw e; }
+      return data || {};
+    });
+  });
 }
-$('btnLoad').onclick=async()=>{
-  $('btnLoad').disabled=true;
-  try{ const rows=await fetchKlines($('sym').value.trim().toUpperCase(),$('tf').value,Math.min(20000,+$('cnt').value||5000),$('mkt').value); onData(toC(rows),$('sym').value.toUpperCase()+' '+$('tf').value); }
-  catch(e){ setStatus('No pude descargar ('+e.message+'). Probá abrir este archivo desde tu computadora, otro mercado, o cargá un CSV.'); }
-  $('btnLoad').disabled=false;
+function b64dec(b64){ var bin = atob(b64.replace(/\s/g,'')); var bytes = new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+function b64enc(str){ var bytes = new TextEncoder().encode(str), s=''; for(var i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]); return btoa(s); }
+function mergeCfg(c){
+  var d = clone(DEFAULT_CFG), p = c.params || {};
+  var out = Object.assign({}, d, c);
+  out.params = Object.assign({}, d.params, p, {weights:Object.assign({}, d.params.weights, p.weights||{})});
+  if(!Array.isArray(out.markets) || !out.markets.length) out.markets = d.markets;
+  return out;
+}
+
+/* ---------- formulario ---------- */
+function renderMarkets(list){
+  var box = $('markets'); box.innerHTML = '';
+  list.forEach(function(m, i){
+    var row = document.createElement('div'); row.className = 'mk';
+    var opts = INTERVALS.map(function(v){ return '<option'+(v===m.interval?' selected':'')+'>'+v+'</option>'; }).join('');
+    row.innerHTML = '<input type="text" list="syms" class="sy" value="'+esc(m.symbol)+'" aria-label="Símbolo" placeholder="BTCUSDT" spellcheck="false" autocomplete="off">'+
+      '<select class="iv" aria-label="Temporalidad">'+opts+'</select>'+
+      '<button type="button" class="ghost rm" aria-label="Quitar">Quitar</button>'+
+      '<div class="warn" '+(SHORT[m.interval]?'':'hidden')+'>⚠ Con temporalidades menores a 4h las comisiones superan la ventaja del indicador (según los backtests de BTC).</div>';
+    row.querySelector('.rm').onclick = function(){ var cur = readMarkets(); cur.splice(i,1); renderMarkets(cur.length?cur:[{symbol:'BTCUSDT',interval:'1h'}]); markDirty(); };
+    row.querySelector('.iv').onchange = function(){ row.querySelector('.warn').hidden = !SHORT[this.value]; };
+    box.appendChild(row);
+  });
+}
+function readMarkets(){
+  return Array.prototype.map.call($('markets').children, function(r){ return {symbol:r.querySelector('.sy').value.trim().toUpperCase(), interval:r.querySelector('.iv').value}; });
+}
+function renderWeights(w){
+  var box = $('weights'); box.innerHTML = '';
+  Object.keys(WLABELS).forEach(function(k){
+    var l = document.createElement('label'); l.innerHTML = WLABELS[k]+'<input type="number" step="0.5" min="0" data-w="'+k+'" value="'+w[k]+'">'; box.appendChild(l);
+  });
+}
+function paintMaster(){
+  var on = $('alertsOn').checked, m = $('master');
+  m.className = 'master '+(on?'on':'off');
+  $('masterT').textContent = on ? 'Alertas activas' : 'Alertas en pausa';
+  $('masterD').textContent = on ? 'Te llega un mail cuando una vela cierra con compra o venta.' : 'El bot sigue corriendo pero no manda mails. Al reactivar no te llegan avisos viejos.';
+}
+function fillForm(c){
+  $('alertsOn').checked = c.alertas_activas !== false; paintMaster();
+  renderMarkets(c.markets);
+  var p = c.params; $('minScore').value = p.minScore; $('strongScore').value = p.strongScore;
+  $('trendFilter').checked = !!p.trendFilter; $('useVol').checked = p.useVol !== false; renderWeights(p.weights);
+  syncManual();
+}
+function buildCfg(){
+  var errs = [], c = clone(S.cfg);
+  c.alertas_activas = $('alertsOn').checked;
+  var mk = readMarkets(), seen = {};
+  mk.forEach(function(m){
+    if(!/^[A-Z0-9]{5,20}$/.test(m.symbol)) errs.push('El símbolo "'+m.symbol+'" no parece válido (ejemplo: BTCUSDT).');
+    var k = m.symbol+'_'+m.interval; if(seen[k]) errs.push('Repetiste '+m.symbol+' en '+m.interval+'.'); seen[k] = 1;
+  });
+  c.markets = mk;
+  var ms = parseFloat($('minScore').value), ss = parseFloat($('strongScore').value);
+  if(!(ms>0)) errs.push('El puntaje mínimo tiene que ser mayor a 0.');
+  if(!(ss>0)) errs.push('El puntaje fuerte tiene que ser mayor a 0.');
+  c.params.minScore = ms; c.params.strongScore = ss;
+  c.params.trendFilter = $('trendFilter').checked; c.params.useVol = $('useVol').checked;
+  Array.prototype.forEach.call($('weights').querySelectorAll('input'), function(i){
+    var v = parseFloat(i.value); if(!(v>=0)) errs.push('El peso de '+WLABELS[i.dataset.w]+' no es válido.'); c.params.weights[i.dataset.w] = v;
+  });
+  return {cfg:c, errs:errs};
+}
+function syncManual(){ try{ $('manualJson').value = JSON.stringify(buildCfg().cfg, null, 2); }catch(e){} }
+
+/* ---------- acciones ---------- */
+function needConn(){
+  if(!S.connected){ log('Primero conectá tu repositorio (paso 1).','warn'); return false; } return true;
+}
+function connect(){
+  var repo = repoName(), token = $('token').value.trim();
+  if(!/^[\w.-]+\/[\w.-]+$/.test(repo)){ log('Escribí el repositorio así: usuario/nombre.','bad'); return Promise.resolve(); }
+  if(!token){ log('Falta el token de acceso.','bad'); return Promise.resolve(); }
+  busy(true); log('Conectando con '+repo+'…');
+  return gh('/repos/'+repo).then(function(info){
+    S.branch = info.default_branch;
+    return gh('/repos/'+repo+'/contents/bot/config.json?ref='+encodeURIComponent(S.branch)).then(function(f){
+      S.sha = f.sha; S.cfg = mergeCfg(JSON.parse(b64dec(f.content))); log('Configuración cargada desde bot/config.json.','ok');
+    }, function(e){
+      if(e.status===404){ S.sha = null; log('No encontré bot/config.json en el repositorio: ¿subiste los archivos del zip? Uso la configuración por defecto.','warn'); }
+      else throw e;
+    });
+  }).then(function(){
+    S.connected = true; $('connState').textContent = '✔ Conectado a '+repo; fillForm(S.cfg); $('dirty').hidden = true;
+    if($('remember').checked){ lsSet('tsf_repo',repo); lsSet('tsf_token',token); lsSet('tsf_rem','1'); } else { lsDel('tsf_token'); lsDel('tsf_rem'); lsSet('tsf_repo',repo); }
+    return Promise.all([refreshSecrets(), refreshRuns()]);
+  }).catch(function(e){ S.connected = false; $('connState').textContent = ''; log(e.message,'bad'); }).then(function(){ busy(false); });
+}
+function refreshSecrets(){
+  var repo = repoName();
+  return gh('/repos/'+repo+'/actions/secrets?per_page=100').then(function(d){
+    var names = (d.secrets||[]).map(function(s){ return s.name; }); S.secrets = names;
+    var need = [['GMAIL_USER','Gmail de envío'],['GMAIL_APP_PASSWORD','Contraseña de aplicación'],['EMAIL_TO','Mail de destino']];
+    $('secChips').innerHTML = need.map(function(n){ var ok = names.indexOf(n[0])>=0; return '<span class="chip '+(ok?'ok':'bad')+'">'+(ok?'✔':'✘')+' '+n[1]+'</span>'; }).join('');
+    $('emailHint').textContent = names.indexOf('EMAIL_TO')>=0 ? 'Ya hay un mail guardado. Escribí uno nuevo solo si querés cambiarlo.' : 'Se guarda cifrado como secreto en tu GitHub, no queda en el código.';
+  }).catch(function(e){ log('No pude leer los secretos: '+e.message,'warn'); });
+}
+function ago(iso){
+  var s = Math.max(0,(Date.now()-new Date(iso).getTime())/1000);
+  if(s<90) return 'hace instantes'; if(s<5400) return 'hace '+Math.round(s/60)+' min'; if(s<129600) return 'hace '+Math.round(s/3600)+' h'; return 'hace '+Math.round(s/86400)+' días';
+}
+function refreshRuns(){
+  var repo = repoName();
+  return gh('/repos/'+repo+'/actions/workflows/'+WORKFLOW+'/runs?per_page=6').then(function(d){
+    var rs = d.workflow_runs||[];
+    if(!rs.length){ $('runs').innerHTML = '<span class="hint">Todavía no hubo revisiones. Podés lanzar una con "Mandar mail de prueba".</span>'; return; }
+    $('runs').innerHTML = rs.map(function(r){
+      var st = r.status!=='completed' ? ['p','⏳','en curso'] : (r.conclusion==='success' ? ['s','✔','sin problemas'] : ['f','✘','con error']);
+      return '<div class="run"><span class="ic '+st[0]+'">'+st[1]+'</span><span>'+st[2]+' · '+(r.event==='schedule'?'revisión automática':'lanzada a mano')+' · '+ago(r.created_at)+'</span><a href="'+esc(r.html_url)+'" target="_blank" rel="noopener">ver</a></div>';
+    }).join('');
+  }).catch(function(e){ $('runs').innerHTML = '<span class="hint">No pude leer el estado: '+esc(e.message)+'</span>'; });
+}
+function putConfig(cfg){
+  var repo = repoName(), path = '/repos/'+repo+'/contents/bot/config.json';
+  var body = {message:'Panel: actualizar configuración', content:b64enc(JSON.stringify(cfg,null,2)+'\n'), branch:S.branch};
+  if(S.sha) body.sha = S.sha;
+  return gh(path,{method:'PUT',body:body}).catch(function(e){
+    if(e.status!==409 && e.status!==422) throw e;
+    return gh(path+'?ref='+encodeURIComponent(S.branch)).then(function(f){ body.sha = f.sha; }, function(){ delete body.sha; }).then(function(){ return gh(path,{method:'PUT',body:body}); });
+  }).then(function(res){ S.sha = res.content && res.content.sha; S.cfg = cfg; });
+}
+function setSecret(name, value){
+  var repo = repoName();
+  if(!window.sodium) return Promise.reject(new Error('No se pudo cargar la librería de cifrado (necesita internet). Cargá "'+name+'" a mano en GitHub: Settings → Secrets and variables → Actions.'));
+  return window.sodium.ready.then(function(){
+    return gh('/repos/'+repo+'/actions/secrets/public-key').then(function(pk){
+      var sod = window.sodium, key = sod.from_base64(pk.key, sod.base64_variants.ORIGINAL);
+      var enc = sod.crypto_box_seal(sod.from_string(value), key);
+      return gh('/repos/'+repo+'/actions/secrets/'+name,{method:'PUT', body:{encrypted_value:sod.to_base64(enc, sod.base64_variants.ORIGINAL), key_id:pk.key_id}});
+    });
+  });
+}
+function save(){
+  if(!needConn()) return;
+  var r = buildCfg(); if(r.errs.length){ r.errs.forEach(function(m){ log(m,'bad'); }); return; }
+  var email = $('emailTo').value.trim(), gu = $('gUser').value.trim(), gp = $('gPass').value.replace(/\s/g,'');
+  if(email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ log('El mail de destino no parece válido.','bad'); return; }
+  if(gu && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gu)){ log('El Gmail de envío no parece válido.','bad'); return; }
+  busy(true); log('Guardando…');
+  var chain = putConfig(r.cfg).then(function(){ log('Configuración guardada ('+(r.cfg.alertas_activas?'alertas activas':'alertas en pausa')+', '+r.cfg.markets.map(function(m){return m.symbol+' '+m.interval;}).join(', ')+').','ok'); });
+  [['EMAIL_TO',email,'Mail de destino'],['GMAIL_USER',gu,'Gmail de envío'],['GMAIL_APP_PASSWORD',gp,'Contraseña de aplicación']].forEach(function(s){
+    if(!s[1]) return;
+    chain = chain.then(function(){ return setSecret(s[0], s[1]).then(function(){ log(s[2]+' guardado como secreto cifrado.','ok'); }); });
+  });
+  chain.then(function(){ $('dirty').hidden = true; $('gPass').value = ''; return refreshSecrets(); })
+    .catch(function(e){ log(e.message,'bad'); }).then(function(){ busy(false); });
+}
+function sendTest(){
+  if(!needConn()) return; busy(true); log('Pidiendo un mail de prueba…');
+  gh('/repos/'+repoName()+'/actions/workflows/'+WORKFLOW+'/dispatches',{method:'POST', body:{ref:S.branch, inputs:{test:'true'}}}).then(function(){
+    log('Listo: en 1 o 2 minutos debería llegarte un mail con "PRUEBA" en el asunto. Mirá el estado abajo.','ok');
+    return new Promise(function(res){ setTimeout(res, 4000); }).then(refreshRuns);
+  }).catch(function(e){ log(e.status===404 ? 'No encuentro el workflow '+WORKFLOW+'. ¿Subiste la carpeta .github/workflows del zip?' : e.message,'bad'); }).then(function(){ busy(false); });
+}
+
+/* ---------- eventos ---------- */
+$('btnConnect').onclick = connect;
+$('btnSave').onclick = save;
+$('btnTest').onclick = sendTest;
+$('btnRuns').onclick = function(){ if(needConn()){ busy(true); refreshRuns().then(function(){ busy(false); }); } };
+$('addMk').onclick = function(){ var c = readMarkets(); c.push({symbol:'ETHUSDT',interval:'1h'}); renderMarkets(c); markDirty(); };
+$('alertsOn').onchange = function(){ paintMaster(); markDirty(); };
+['emailTo','gUser','gPass','minScore','strongScore','trendFilter','useVol'].forEach(function(id){ $(id).addEventListener('input', markDirty); });
+$('weights').addEventListener('input', markDirty);
+$('markets').addEventListener('input', markDirty);
+$('btnCopy').onclick = function(){
+  var ta = $('manualJson'); ta.select();
+  var done = function(){ log('Configuración copiada.','ok'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(done, function(){ try{ document.execCommand('copy'); done(); }catch(e){ log('Seleccioné el texto: copialo con Ctrl+C.','warn'); } }); }
+  else { try{ document.execCommand('copy'); done(); }catch(e){ log('Seleccioné el texto: copialo con Ctrl+C.','warn'); } }
 };
-$('csv').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ onData(toC(parseCSV(await f.text())),f.name); }catch(err){ setStatus(err.message); } };
 
-// ---------- Gráficos ----------
-function setup(cv){ const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=+cv.getAttribute('height'); cv.width=w*dpr; cv.height=h*dpr; const x=cv.getContext('2d'); x.scale(dpr,dpr); x.clearRect(0,0,w,h); return {x,w,h}; }
-function drawPrice(res,from,to){
-  const cv=$('cPrice'); const {x,w,h}=setup(cv); if(!C) return;
-  const pad=36; let mn=Infinity,mx=-Infinity; for(let i=from;i<to;i++){ if(C.low[i]<mn)mn=C.low[i]; if(C.high[i]>mx)mx=C.high[i]; }
-  const X=i=>(i-from)/Math.max(1,to-from-1)*(w-pad-8)+pad, Y=v=>h-14-(v-mn)/(mx-mn||1)*(h-28);
-  x.strokeStyle='#2a3344'; x.fillStyle='#8b97ad'; x.font='10px system-ui';
-  for(let k=0;k<=4;k++){ const v=mn+(mx-mn)*k/4,y=Y(v); x.beginPath(); x.moveTo(pad,y); x.lineTo(w-8,y); x.stroke(); x.fillText(v>=100?v.toFixed(0):v.toPrecision(4),2,y+3); }
-  x.strokeStyle='#cfd7e6'; x.lineWidth=1; x.beginPath(); for(let i=from;i<to;i++){ const px=X(i),py=Y(C.close[i]); i===from?x.moveTo(px,py):x.lineTo(px,py);} x.stroke();
-  if(res){
-    const sg=res.sg; x.lineWidth=1.2;
-    [[sg.e1,'#22d3ee'],[sg.e2,'#fb923c'],[sg.e3,'#a78bfa']].forEach(([a,c])=>{ x.strokeStyle=c; x.beginPath(); let st=false; for(let i=from;i<to;i++){ if(isNaN(a[i])) continue; const px=X(i),py=Y(a[i]); st?x.lineTo(px,py):(x.moveTo(px,py),st=true);} x.stroke(); });
-    res.bt.trades.forEach(t=>{ if(t.entryI<from) return; const px=X(t.entryI),py=Y(t.entry); x.fillStyle=t.dir===1?'#26c281':'#ef5350'; x.beginPath(); if(t.dir===1){x.moveTo(px,py);x.lineTo(px-4,py+8);x.lineTo(px+4,py+8);}else{x.moveTo(px,py);x.lineTo(px-4,py-8);x.lineTo(px+4,py-8);} x.fill(); x.fillStyle=t.pnl>0?'#26c281':'#ef5350'; x.beginPath(); x.arc(X(t.exitI),Y(t.exit),2.5,0,7); x.fill(); });
-  }
-}
-function drawEq(res,cfg,from,to){
-  const cv=$('cEq'); const {x,w,h}=setup(cv); const cur=res.bt.curve; if(cur.length<2) return;
-  const pad=46; let mn=cfg.capital,mx=cfg.capital; cur.forEach(c=>{mn=Math.min(mn,c.eq);mx=Math.max(mx,c.eq);});
-  const X=i=>(i-from)/Math.max(1,to-from-1)*(w-pad-8)+pad, Y=v=>h-14-(v-mn)/(mx-mn||1)*(h-28);
-  x.strokeStyle='#2a3344'; x.fillStyle='#8b97ad'; x.font='10px system-ui';
-  for(let k=0;k<=3;k++){ const v=mn+(mx-mn)*k/3,y=Y(v); x.beginPath(); x.moveTo(pad,y); x.lineTo(w-8,y); x.stroke(); x.fillText(v.toFixed(0),2,y+3); }
-  x.setLineDash([4,4]); x.strokeStyle='#8b97ad'; x.beginPath(); x.moveTo(pad,Y(cfg.capital)); x.lineTo(w-8,Y(cfg.capital)); x.stroke(); x.setLineDash([]);
-  x.strokeStyle='#4f8cff'; x.lineWidth=1.6; x.beginPath(); let px=X(cur[0].i),py=Y(cur[0].eq); x.moveTo(px,py);
-  for(let k=1;k<cur.length;k++){ const nx=X(cur[k].i),ny=Y(cur[k].eq); x.lineTo(nx,py); x.lineTo(nx,ny); py=ny; } x.lineTo(w-8,py); x.stroke();
-}
-
-// ---------- Render de resultados ----------
-function kpi(l,v,c=''){ return `<div class="kpi"><small>${l}</small><b class="${c}">${v}</b></div>`; }
-function render(res,p,cfg,from,to){
-  const m=res.m;
-  $('kpis').innerHTML = kpi('Retorno neto',fmt(m.net,1)+'%',cls(m.net))+kpi('Buy & hold',fmt(m.buyHold,1)+'%',cls(m.buyHold))+kpi('Profit factor',fmt(m.pf))+kpi('Win rate',fmt(m.winRate,1)+'%')+
-    kpi('Operaciones',m.trades+` <span class="pill">${m.longs}L / ${m.shorts}S</span>`)+kpi('R promedio',fmt(m.avgR),cls(m.avgR))+kpi('Máx. drawdown','-'+fmt(m.maxDD,1)+'%','neg')+kpi('Capital final',fmt(m.finalEq,0))+
-    kpi('PnL largos',fmt(m.longPnl,0),cls(m.longPnl))+kpi('PnL cortos',fmt(m.shortPnl,0),cls(m.shortPnl));
-  drawPrice(res,from,to); drawEq(res,cfg,from,to);
-  const at=T.attribution(res.bt.trades);
-  $('tAttr').innerHTML='<tr><th>Criterio</th><th>Trades con</th><th>R con</th><th>Trades sin</th><th>R sin</th><th>Veredicto</th></tr>'+at.map(a=>{
-    let v='–'; if(a.nOn>=10&&a.nOff>=10){ const d=a.rOn-a.rOff; v=d>0.15?'<span class="pos">suma</span>':(d<-0.15?'<span class="neg">resta</span>':'neutro'); } else v='<span class="mut">pocos datos</span>';
-    return `<tr><td>${a.name}</td><td>${a.nOn}</td><td class="${cls(a.rOn)}">${fmt(a.rOn)}</td><td>${a.nOff}</td><td class="${cls(a.rOff)}">${fmt(a.rOff)}</td><td>${v}</td></tr>`; }).join('');
-  const tr=res.bt.trades.slice(-150).reverse();
-  $('tTr').innerHTML='<tr><th>#</th><th>Entrada</th><th>Lado</th><th>Precio ent.</th><th>Precio sal.</th><th>Motivo</th><th>PnL</th><th>R</th></tr>'+tr.map((t,i)=>`<tr><td>${res.bt.trades.length-i}</td><td>${dt(C.t[t.entryI])}</td><td>${t.dir===1?'Largo':'Corto'}</td><td>${t.entry.toPrecision(6)}</td><td>${t.exit.toPrecision(6)}</td><td>${t.reason}</td><td class="${cls(t.pnl)}">${fmt(t.pnl)}</td><td class="${cls(t.R)}">${fmt(t.R)}</td></tr>`).join('');
-  $('pineOut').value=pineText(p);
-}
-function pineText(p){ return '// Pegá estos valores en los inputs del indicador:\n'+Object.keys(PINE_NAMES).map(k=>`${PINE_NAMES[k]} = ${typeof p[k]==='boolean'?(p[k]?'sí':'no'):p[k]}`).join('\n'); }
-
-$('btnRun').onclick=()=>{
-  if(!C){ setStatus('Primero cargá datos.'); return; }
-  const p=getP(), cfg=getCfg(), from=T.warmup(p), to=C.close.length;
-  if(to-from<200){ setStatus('Pocas velas para esos parámetros. Descargá más.'); return; }
-  const res=T.evalParams(C,p,cfg,from,to); last={res,p,cfg,from,to}; render(res,p,cfg,from,to);
-};
-
-// ---------- Optimizador ----------
-$('btnStop').onclick=()=>{stopFlag=true;};
-$('btnOpt').onclick=()=>{
-  if(!C){ setStatus('Primero cargá datos.'); return; }
-  const base=getP(), cfg=getCfg(), N=+$('optN').value||300, minT=+$('optMin').value||30, sp=Math.min(90,Math.max(40,+$('optSplit').value||70))/100;
-  const n=C.close.length, split=Math.floor(n*sp); if(split<800||n-split<300){ $('optStatus').textContent='Necesito más velas (al menos ~1100).'; return; }
-  const list=[]; let k=0; stopFlag=false; $('btnOpt').disabled=true; $('btnStop').disabled=false;
-  const fit=m=>m.trades<minT?-Infinity:m.net/Math.max(m.maxDD,5);
-  const evalOne=q=>{ const f=T.warmup(q); if(f>=split-200) return null; const a=T.evalParams(C,q,cfg,f,split).m, b=T.evalParams(C,q,cfg,split,n).m; return {q,a,b,fit:fit(a)}; };
-  function step(){
-    const t0=Date.now();
-    while(k<N && !stopFlag && Date.now()-t0<60){ const r=evalOne(T.randomParams(base)); if(r) list.push(r); k++; }
-    $('optStatus').textContent=`Probando ${k}/${N}…`;
-    if(k<N && !stopFlag){ setTimeout(step,0); return; }
-    finish();
-  }
-  function finish(){
-    $('btnOpt').disabled=false; $('btnStop').disabled=true;
-    const cur=evalOne(base); const top=list.filter(r=>r.fit>-Infinity).sort((a,b)=>b.fit-a.fit).slice(0,10);
-    $('optStatus').textContent=top.length?`Listo: ${k} combinaciones. Entrenamiento: primeras ${Math.round(sp*100)}% de velas; Test: el resto.`:`Ninguna combinación llegó a ${minT} trades en entrenamiento. Bajá el mínimo o usá más velas.`;
-    const rows=[]; if(cur) rows.push(Object.assign({label:'Actual'},cur)); top.forEach((r,i)=>rows.push(Object.assign({label:'#'+(i+1)},r)));
-    window.__opt=rows;
-    $('tOpt').innerHTML='<tr><th></th><th>Train ret.</th><th>Train PF</th><th>Train trades</th><th>Train DD</th><th>Test ret.</th><th>Test PF</th><th>Test trades</th><th>Test DD</th><th>Parámetros</th><th></th></tr>'+
-      rows.map((r,i)=>`<tr><td><b>${r.label}</b></td><td class="${cls(r.a.net)}">${fmt(r.a.net,1)}%</td><td>${fmt(r.a.pf)}</td><td>${r.a.trades}</td><td>${fmt(r.a.maxDD,1)}%</td><td class="${cls(r.b.net)}">${fmt(r.b.net,1)}%</td><td>${fmt(r.b.pf)}</td><td>${r.b.trades}</td><td>${fmt(r.b.maxDD,1)}%</td><td class="mut" style="font-size:11px">EMA ${r.q.emaF}/${r.q.emaM}/${r.q.emaS} · RSI ${r.q.rsiLen} · MACD ${r.q.mF}/${r.q.mS} · BB ${r.q.bbLen}x${r.q.bbMult} · piv ${r.q.pivLen} · tol ${r.q.srTol} · min ${r.q.minScore}${r.q.useVol?' · vol':''} · SL ${r.q.slMult} · RR ${r.q.rr}</td><td><button class="sec" data-i="${i}">Aplicar</button></td></tr>`).join('');
-    $('tOpt').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{ const r=window.__opt[+b.dataset.i]; setP(r.q); $('btnRun').click(); window.scrollTo({top:0,behavior:'smooth'}); });
-  }
-  step();
-};
-window.addEventListener('resize',()=>{ if(last){ drawPrice(last.res,last.from,last.to); drawEq(last.res,last.cfg,last.from,last.to);} else if(C) drawPrice(null,0,C.close.length); });
+/* ---------- inicio ---------- */
+var r0 = lsGet('tsf_repo'); if(r0) $('repo').value = r0;
+if(lsGet('tsf_rem')==='1'){ $('remember').checked = true; var t0 = lsGet('tsf_token'); if(t0) $('token').value = t0; }
+fillForm(S.cfg);
+if($('repo').value && $('token').value) connect();
 })();
 </script>
 </body>
